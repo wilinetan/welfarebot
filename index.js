@@ -23,16 +23,14 @@ const idRef = sitesRef.child("ids");
 
 
 // Feature 1: Authentication
-// bot.onText(/\/start/, (msg) => {
-//   bot.sendMessage(msg.chat.id, "Please input your matric number.", reply_markup = ForceReply())});
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id, 'Please input your matric number with the following ' + 
     'format: "/matric Axxxxxxxx".');
 });
 
-function getMatricNumber(count) {
 bot.onText(/\/matric/, (msg, reply) => {
-  const matric = reply.input.split(" ")[1];
+  const mat = reply.input.split(" ")[1];
+  const matric = mat.toUpperCase();
   console.log("matric", matric, typeof matric);
   getMatricNumber(0, matric, msg.chat.id);
 });
@@ -42,110 +40,173 @@ function getMatricNumber(count, matric, id) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
 
-  bot.once('message', (msg) => {
-    console.log(msg)
-    const reply = msg.text.toUpperCase();
-    if (count == 5) {
-      bot.sendMessage(msg.chat.id, "You have tried too many times. Please restart the bot.");
-    } else if (reply.length != 9) {
-      bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
-      getMatricNumber(count + 1);
-    } else if (!isLetter(reply.charAt(0)) || !isLetter(reply.charAt(0)) || 
-        isNaN(parseInt(reply.substring(1,8), 10))) {
-      bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
-      getMatricNumber(count + 1);
-    } else {
-      // checks if matric number is in database and updates details otherwise prompts user again
-      sheetRef.once('value', function(snapshot) {
-        if (snapshot.hasChild(reply)) {
-          // const currUser = sheetRef.child(reply);
-          // console.log("user queuenum", currUser.queueNum);
-          // if (currUser.queueNum != undefined) {
-          //   console.log("you are already in the queue.");
-          // } else {
-            const updateData = bot.sendMessage(msg.chat.id, "Please input your full name.")
-            .then(() => {
-              bot.once('message', (msg) => {
-                const name = msg.text;
-                const id = msg.from.id;
-                bot.sendMessage(msg.chat.id, "You have been authenticated.")
-                idRef.child(id).set({
-                  name: name,
-                  matric: reply,
-                  teleid: msg.from.id,
-                  collected: false
-                })
-              });
-            });
-        }
-        else {
-          bot.sendMessage(msg.chat.id, "Matric number is not recognised. Please try again.");
-          getMatricNumber(count + 1);
-        }
-      });
-    }
-  });
+  if (matric.length != 9) {
+    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
+  } else if (!isLetter(matric.charAt(0)) || !isLetter(matric.charAt(0)) || 
+      isNaN(parseInt(matric.substring(1,8), 10))) {
+    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
+  } else {
+    // checks if matric number is in database and updates details otherwise prompts user again
+    sheetRef.once('value', function(snapshot) {
+      if (snapshot.hasChild(matric)) {
+        idRef.once('value', function(snap) {
+
+          if (snap.hasChild(id.toString())) {
+            bot.sendMessage(id, "You have already been authenticated.");
+          } else {
+            bot.sendMessage(id, "Please input your full name using the following format: " +
+              "/name Bob Tan");
+            idRef.child(id).set({
+              matric: matric,
+              teleid: id,
+              collected: false
+            })
+            // updateDetails(id, reply);
+          }
+        });
+      } else {
+        bot.sendMessage(id, "Matric number is not recognised. Please try again.");
+      }
+    });
+  }
 }
 
-// Feature 2: Submit survey
-// choose which survey they want to submit
-let survey;
-bot.onText(/\/submit/, (msg) => {
-  bot.sendMessage(msg.chat.id,'Okay, which survey?', {
-    reply_markup: {
-      inline_keyboard: [[
-        {
-          text: 'NUSSU',
-          callback_data: 'nussu'
-        },{
-          text: 'Faculty',
-          callback_data: 'faculty'
-        }
-      ]]
-    }
+bot.onText(/\/name/, (msg, reply) => {
+  const id = msg.chat.id;
+  const arr = reply.input.split(" ");
+  arr.shift();
+  const name = arr.join(" ");
+
+  idRef.child(id).update({
+    name: name
   });
-});
-bot.on("polling_error", (err) => console.log(err));
-bot.on("callback_query", (callbackQuery) => {
-  survey = callbackQuery.data
-  chat_id = callbackQuery.message.chat.id 
-  message_id = callbackQuery.message.message_id
-  bot.deleteMessage(chat_id.toString(), message_id.toString())
-  bot.sendMessage(chat_id, "Send me the photo.");
-  getsurvey()
-  return;
+
+  bot.sendMessage(id, "You have been authenticated");
 });
 
+// Feature 2: Submit survey
+process.on('uncaughtException', function (error) {
+  console.log("\x1b[31m", "Exception: ", error, "\x1b[0m");
+});
 
+process.on('unhandledRejection', function (error, p) {
+  console.log("\x1b[31m","Error: ", error.message, "\x1b[0m");
+});
 
+var answerCallbacks = {};
+bot.on('message', function (msg) {
+  var callback = answerCallbacks[msg.chat.id];
+  if (callback) {
+    delete answerCallbacks[msg.chat.id];
+    return callback(msg);
+  }
+});
 
-var async = require("async");
-function getsurvey() {
-  bot.once('message', async (msg) => {
-    if (msg.photo && msg.photo[0]) {
-      
-      const personid = msg.from.id.toString()
-      const file_id = msg.photo[0].file_id
+bot.onText(/\/submitnussu/,function (msg) {
+bot.sendMessage(msg.chat.id, "Send your NUSSU photo").then(function () {
+  answerCallbacks[msg.chat.id] = async function (answer) {
+    if (answer.photo && answer.photo[0]) {
+      const personid = answer.from.id.toString()
+      const file_id = answer.photo[0].file_id
       const fileinfo = await bot.getFile(file_id)
       const {file_path} = fileinfo
       const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
       console.log(url)
       idRef.once('value', function(snapshot) {
         if (snapshot.hasChild(personid)) {
-            if (survey == "nussu") {
               idRef.child(personid).update({
                 nussu:url
               })
-              bot.sendMessage(msg.chat.id, "NUSSU Survey proof received!")}
-            else if (survey == "faculty") {
-              idRef.child(personid).update({
-                faculty:url
-              })
-              bot.sendMessage(msg.chat.id, "Faculty Survey proof received!")}
-            }})
-          }
-        return;
-      })}
+      bot.sendMessage(answer.chat.id, "NUSSU Survey proof received!")
+            }
+          })
+        }
+      }
+    })
+  });
+
+bot.onText(/\/submitfaculty/, function (msg) {
+  bot.sendMessage(msg.chat.id, "Send your Faculty photo").then(function () {
+    answerCallbacks[msg.chat.id] = async function (answer) {
+      if (answer.photo && answer.photo[0]) {
+        const personid = answer.from.id.toString()
+        const file_id = answer.photo[0].file_id
+        const fileinfo = await bot.getFile(file_id)
+        const {file_path} = fileinfo
+        console.log(file_id)
+        console.log(fileinfo)
+        console.log(file_path)
+        const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
+        console.log(url)
+        idRef.once('value', function(snapshot) {
+          if (snapshot.hasChild(personid)) {
+                idRef.child(personid).update({
+                  faculty:url
+                })
+        bot.sendMessage(answer.chat.id, "Faculty Survey proof received!")}
+              }
+            )
+          }}})});
+
+
+// let survey;
+// bot.onText(/\/submit/, (msg) => {
+//   bot.sendMessage(msg.chat.id,'Okay, which survey?', {
+//     reply_markup: {
+//       inline_keyboard: [[
+//         {
+//           text: 'NUSSU',
+//           callback_data: 'nussu'
+//         },{
+//           text: 'Faculty',
+//           callback_data: 'faculty'
+//         }
+//       ]]
+//     }
+//   });
+// });
+// bot.on("polling_error", (err) => console.log(err));
+// bot.on("callback_query", (callbackQuery) => {
+//   survey = callbackQuery.data
+//   chat_id = callbackQuery.message.chat.id 
+//   message_id = callbackQuery.message.message_id
+//   bot.deleteMessage(chat_id.toString(), message_id.toString())
+//   bot.sendMessage(chat_id, "Send me the photo.");
+//   // getsurvey()
+//   return;
+// });
+
+
+// var async = require("async");
+// function getsurvey() {
+//   bot.on('message', async (msg) => {
+//     if (msg.photo && msg.photo[0]) {
+//       console.log(msg)
+//       const personid = msg.from.id.toString()
+//       const file_id = msg.photo[0].file_id
+//       const fileinfo = await bot.getFile(file_id)
+//       const {file_path} = fileinfo
+//       console.log(file_id)
+//       console.log(fileinfo)
+//       console.log(file_path)
+//       const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
+//       console.log(url)
+//       idRef.once('value', function(snapshot) {
+//         if (snapshot.hasChild(personid)) {
+//             if (survey == "nussu") {
+//               idRef.child(personid).update({
+//                 nussu:url
+//               })
+//               bot.sendMessage(msg.chat.id, "NUSSU Survey proof received!")}
+//             else if (survey == "faculty") {
+//               idRef.child(personid).update({
+//                 faculty:url
+//               })
+//               bot.sendMessage(msg.chat.id, "Faculty Survey proof received!")}
+//             }})
+//           }
+//         return;
+//       })}
 
 // Feature 3: Queue
 let currQueueNum = 0;
@@ -171,3 +232,28 @@ bot.onText(/\/queue/, (msg) => {
     }
   })
 });
+
+
+
+
+
+// trytrytry
+
+// bot.onText(/questions/, function (msg) {
+//   bot.sendMessage(msg.chat.id, "Enter your name").then(function () {
+//       answerCallbacks[msg.chat.id] = function (answer) {
+//           var name = answer.text;
+//           bot.sendMessage(msg.chat.id, "Enter your address").then(function () {
+//               answerCallbacks[msg.chat.id] = function (answer) {
+//                   var address = answer.text;
+//                   bot.sendMessage(msg.chat.id, "Enter your phone number").then(function () {
+//                       answerCallbacks[msg.chat.id] = function (answer) {
+//                           var phone = answer.text;
+//                           bot.sendMessage(msg.chat.id, name + address + phone + " saved!");
+//                       }
+//                   });
+//               }
+//           });
+//       }
+//   });
+// });
