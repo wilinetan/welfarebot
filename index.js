@@ -2,8 +2,8 @@ const TelegramBot = require('node-telegram-bot-api');
 // const ogs = require('open-graph-scraper');
 const firebase = require('firebase');
 
-const token = '1058971103:AAGRkzUyDeVEiCrpXkY6IpooTiCb0T7eLtU';
-// const token = '1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU';
+// const token = '1058971103:AAGRkzUyDeVEiCrpXkY6IpooTiCb0T7eLtU';
+const token = '1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU';
 const bot = new TelegramBot(token, {polling: true});
 
 const app = firebase.initializeApp({
@@ -91,17 +91,17 @@ bot.onText(/\/queue/, (msg) => {
 
   idRef.child(id).once('value', function(snapshot) {
     const userDetails = snapshot.val();
-    // if (userDetails.queueNum != undefined) {
-    //   bot.sendMessage(id, "You are already in the queue. Your current queue numeber is " + 
-    //     userDetails.queueNum);
-    // } else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
-    //   bot.sendMessage(id, "You have not completed the necessary surveys and forms.");
-    // } else {
+    if (userDetails.queueNum != undefined) {
+      bot.sendMessage(id, "You are already in the queue. Your current queue numeber is " + 
+        userDetails.queueNum);
+    } else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
+      bot.sendMessage(id, "You have not completed the necessary surveys and forms.");
+    } else {
       idRef.child(id).update({
         queueNum: currQueueNum++
       });
-      // console.log("queunum", userDetails.queueNum);
+      console.log("queunum", userDetails.queueNum);
       bot.sendMessage(id, "Your queue number is " + (currQueueNum - 1));
-    // }
+    }
   });
 });
