@@ -1,85 +1,61 @@
-const TelegramBot = require('node-telegram-bot-api');
-const ogs = require('open-graph-scraper');
-const firebase = require('firebase');
 
-const token = '1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU';
-const bot = new TelegramBot(token, {polling: true});
-
-bot.on('message', (msg) => {
-    bot.sendMessage(msg.chat.id, 'Ill have the tuna. No crust.');
-  });
-
-const app = firebase.initializeApp({
-    apiKey: "AIzaSyCLYVSnDM2G6vqu_CFtEFCgANKOTg1quDU",
-    authDomain: "welfarebot-a92e0.firebaseapp.com",
-    databaseURL: "https://welfarebot-a92e0.firebaseio.com",
-    projectId: "welfarebot-a92e0",
-    storageBucket: "welfarebot-a92e0.appspot.com",
-    messagingSenderId: "8047391542",
-});
-
-const ref = firebase.database().ref();
-const sitesRef = ref.child("sites");
-
-let siteUrl;
-bot.onText(/\/bookmark (.+)/, (msg, match) => {
-  siteUrl = match[1];
-  bot.sendMessage(msg.chat.id,'Got it, in which category?', {
+// Feature 2: Submit survey
+// choose which survey they want to submit
+let survey;
+bot.onText(/\/submit/, (msg) => {
+  bot.sendMessage(msg.chat.id,'Okay, which survey?', {
     reply_markup: {
       inline_keyboard: [[
         {
-          text: 'Development',
-          callback_data: 'development'
+          text: 'NUSSU',
+          callback_data: 'nussu'
         },{
-          text: 'Music',
-          callback_data: 'music'
-        },{
-          text: 'Cute monkeys',
-          callback_data: 'cute-monkeys'
+          text: 'Faculty',
+          callback_data: 'faculty'
         }
       ]]
     }
   });
 });
-
+bot.on("polling_error", (err) => console.log(err));
 bot.on("callback_query", (callbackQuery) => {
-    const message = callbackQuery.message;
-    ogs({'url': siteUrl}, function (error, results) {
-      if(results.success) {
-        sitesRef.push().set({
-          name: results.data.ogSiteName,
-          title: results.data.ogTitle,
-          description: results.data.ogDescription,
-          url: siteUrl,
-          thumbnail: results.data.ogImage.url,
-          category: callbackQuery.data
-        });
-        bot.sendMessage(message.chat.id,'Added \"' + results.data.ogTitle +'\" to category \"' + callbackQuery.data + '\"!')
-  } else {
-        sitesRef.push().set({
-          url: siteUrl
-        });
-        bot.sendMessage(message.chat.id,'Added new website, but there was no OG data!');
-      }
-    });
-  });
+  survey = callbackQuery.data
+  chat_id = callbackQuery.message.chat.id 
+  message_id = callbackQuery.message.message_id
+  bot.deleteMessage(chat_id.toString(), message_id.toString())
+  bot.sendMessage(chat_id, "Send me the photo.")
+  getsurvey()
+  return;
+});
 
-  
+var async = require("async");
+function getsurvey() {
+  bot.once('message', async (msg) => {
+    if (msg.photo && msg.photo[0]) {
+      
+      const personid = msg.from.id.toString()
+      const file_id = msg.photo[0].file_id
+      const fileinfo = await bot.getFile(file_id)
+      const {file_path} = fileinfo
+      const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
+      console.log(url)
+      idRef.once('value', function(snapshot) {
+        if (snapshot.hasChild(personid)) {
+            if (survey == "nussu") {
+              idRef.child(personid).update({
+                nussu:url
+              })
+              bot.sendMessage(msg.chat.id, "Photo Received!")}
+            else if (survey == "faculty") {
+              idRef.child(personid).update({
+                faculty:url
+              })
+              bot.sendMessage(msg.chat.id, "Photo Received!")}
+            }})
+          }
+        return;
+      })}
 
-// const functions = require('firebase-functions');
-// const Telegraf = require('telegraf');
 
-// const bot = new Telegraf('1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU')
-// bot.start((ctx) => ctx.reply('hello'))
-// bot.help((ctx) => ctx.reply('Send me a sticker'))
-// // bot.on('sticker', (ctx) => ctx.reply('👍'))
-// bot.hears('hi', (ctx) => ctx.reply('Hey there'))
 
-// bot.launch();
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
