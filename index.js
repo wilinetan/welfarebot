@@ -26,11 +26,18 @@ const idRef = sitesRef.child("ids");
 // bot.onText(/\/start/, (msg) => {
 //   bot.sendMessage(msg.chat.id, "Please input your matric number.", reply_markup = ForceReply())});
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Please input your matric number.");
-  getMatricNumber(0);
+  bot.sendMessage(msg.chat.id, 'Please input your matric number with the following ' + 
+    'format: "/matric Axxxxxxxx".');
 });
 
 function getMatricNumber(count) {
+bot.onText(/\/matric/, (msg, reply) => {
+  const matric = reply.input.split(" ")[1];
+  console.log("matric", matric, typeof matric);
+  getMatricNumber(0, matric, msg.chat.id);
+});
+
+function getMatricNumber(count, matric, id) {
   function isLetter(str) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
@@ -141,7 +148,6 @@ function getsurvey() {
       })}
 
 // Feature 3: Queue
-// Feature 3: Join queue
 let currQueueNum = 0;
 bot.onText(/\/queue/, (msg) => {
   console.log("currQueueNum", currQueueNum);
@@ -163,5 +169,5 @@ bot.onText(/\/queue/, (msg) => {
         queueNum : currQueueNum
       });
     }
-  });
+  })
 });
