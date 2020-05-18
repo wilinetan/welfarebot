@@ -39,9 +39,7 @@ function getMatricNumber(count, matric, id) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
 
-  if (count == 5) {
-    bot.sendMessage(id, "You have tried too many times. Please restart the bot.");
-  } else if (matric.length != 9) {
+  if (matric.length != 9) {
     bot.sendMessage(id, "Invalid matric number entered. Please try again.");
   } else if (!isLetter(matric.charAt(0)) || !isLetter(matric.charAt(0)) || 
       isNaN(parseInt(matric.substring(1,8), 10))) {
@@ -83,63 +81,6 @@ bot.onText(/\/name/, (msg, reply) => {
   });
 })
 
-// get matric number from user
-// function getMatricNumber(count) {
-//   function isLetter(str) {
-//     return str.length === 1 && str.match(/[a-z]/i);
-//   }
-
-//   bot.once('message', (msg) => {
-//     const reply = msg.text.toUpperCase();
-//     if (count == 5) {
-//       bot.sendMessage(msg.chat.id, "You have tried too many times. Please restart the bot.");
-//     } else if (reply.length != 9) {
-//       bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
-//       getMatricNumber(count + 1);
-//     } else if (!isLetter(reply.charAt(0)) || !isLetter(reply.charAt(0)) || 
-//         isNaN(parseInt(reply.substring(1,8), 10))) {
-//       bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
-//       getMatricNumber(count + 1);
-//     } else {
-//       // checks if matric number is in database and updates details otherwise prompts user again
-//       const id = msg.from.id;
-
-//       sheetRef.once('value', function(snapshot) {
-//         if (snapshot.hasChild(reply)) {
-//           idRef.once('value', function(snap) {
-
-//             if (snap.hasChild(id.toString())) {
-//               bot.sendMessage(id, "You have already been authenticated.");
-//             } else {
-//               updateDetails(id, reply);
-//             }
-//           });
-//         } else {
-//           bot.sendMessage(msg.chat.id, "Matric number is not recognised. Please try again.");
-//           getMatricNumber(count + 1);
-//         }
-//       });
-//     }
-//   });
-// }
-
-// function updateDetails(id, matric) {
-//   bot.sendMessage(id, "Please input your full name using the following format:",
-//     "/name Bob Tan.");
-//     .then(() => {
-//       bot.once('message', (msg) => {
-//         const name = msg.text;
-//         bot.sendMessage(id, "You have been authenticated.");
-
-//         idRef.child(id).set({
-//           name: name,
-//           matric: matric,
-//           teleid: id,
-//           collected: false
-//         })
-//       });
-//     });
-// }
 // Feature 2: Submit survey
 // choose which survey they want to submit
 let survey;
