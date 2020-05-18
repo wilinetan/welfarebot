@@ -24,66 +24,122 @@ let currQueueNum = 1;
 
 // Feature 1: Authentication
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, "Please input your matric number.");
-  getMatricNumber(0);
+  bot.sendMessage(msg.chat.id, 'Please input your matric number with the following ' + 
+    'format: "/matric Axxxxxxxx".');
 });
 
-// get matric number from user
-function getMatricNumber(count) {
+bot.onText(/\/matric/, (msg, reply) => {
+  const matric = reply.input.split(" ")[1];
+  console.log("matric", matric, typeof matric);
+  getMatricNumber(0, matric, msg.chat.id);
+});
+
+function getMatricNumber(count, matric, id) {
   function isLetter(str) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
 
-  bot.once('message', (msg) => {
-    const reply = msg.text.toUpperCase();
-    if (count == 5) {
-      bot.sendMessage(msg.chat.id, "You have tried too many times. Please restart the bot.");
-    } else if (reply.length != 9) {
-      bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
-      getMatricNumber(count + 1);
-    } else if (!isLetter(reply.charAt(0)) || !isLetter(reply.charAt(0)) || 
-        isNaN(parseInt(reply.substring(1,8), 10))) {
-      bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
-      getMatricNumber(count + 1);
-    } else {
-      // checks if matric number is in database and updates details otherwise prompts user again
-      const id = msg.from.id;
+  if (count == 5) {
+    bot.sendMessage(id, "You have tried too many times. Please restart the bot.");
+  } else if (matric.length != 9) {
+    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
+  } else if (!isLetter(matric.charAt(0)) || !isLetter(matric.charAt(0)) || 
+      isNaN(parseInt(matric.substring(1,8), 10))) {
+    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
+  } else {
+    // checks if matric number is in database and updates details otherwise prompts user again
+    sheetRef.once('value', function(snapshot) {
+      if (snapshot.hasChild(matric)) {
+        idRef.once('value', function(snap) {
 
-      sheetRef.once('value', function(snapshot) {
-        if (snapshot.hasChild(reply)) {
-          idRef.once('value', function(snap) {
-
-            if (snap.hasChild(id.toString())) {
-              bot.sendMessage(id, "You have already been authenticated.");
-            } else {
-              updateDetails(id, reply);
-            }
-          });
-        } else {
-          bot.sendMessage(msg.chat.id, "Matric number is not recognised. Please try again.");
-          getMatricNumber(count + 1);
-        }
-      });
-    }
-  });
-}
-
-function updateDetails(id, matric) {
-  bot.sendMessage(id, "Please input your full name.")
-    .then(() => {
-      bot.once('message', (msg) => {
-        const name = msg.text;
-        bot.sendMessage(id, "You have been authenticated.");
-
-        idRef.child(id).set({
-          name: name,
-          matric: matric,
-          teleid: id,
-          collected: false
-        })
-      });
+          if (snap.hasChild(id.toString())) {
+            bot.sendMessage(id, "You have already been authenticated.");
+          } else {
+            bot.sendMessage(id, "Please input your full name using the following format: " +
+              "/name Bob Tan");
+            idRef.child(id).set({
+              matric: matric,
+              teleid: id,
+              collected: false
+            })
+            // updateDetails(id, reply);
+          }
+        });
+      } else {
+        bot.sendMessage(id, "Matric number is not recognised. Please try again.");
+      }
     });
+  }
 }
+
+bot.onText(/\/name/, (msg, reply) => {
+  const id = msg.chat.id;
+  const arr = reply.input.split(" ");
+  arr.shift();
+  const name = arr.join(" ");
+
+  idRef.child(id).update({
+    name: name
+  });
+})
+
+// get matric number from user
+// function getMatricNumber(count) {
+//   function isLetter(str) {
+//     return str.length === 1 && str.match(/[a-z]/i);
+//   }
+
+//   bot.once('message', (msg) => {
+//     const reply = msg.text.toUpperCase();
+//     if (count == 5) {
+//       bot.sendMessage(msg.chat.id, "You have tried too many times. Please restart the bot.");
+//     } else if (reply.length != 9) {
+//       bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
+//       getMatricNumber(count + 1);
+//     } else if (!isLetter(reply.charAt(0)) || !isLetter(reply.charAt(0)) || 
+//         isNaN(parseInt(reply.substring(1,8), 10))) {
+//       bot.sendMessage(msg.chat.id, "Invalid matric number entered. Please try again.");
+//       getMatricNumber(count + 1);
+//     } else {
+//       // checks if matric number is in database and updates details otherwise prompts user again
+//       const id = msg.from.id;
+
+//       sheetRef.once('value', function(snapshot) {
+//         if (snapshot.hasChild(reply)) {
+//           idRef.once('value', function(snap) {
+
+//             if (snap.hasChild(id.toString())) {
+//               bot.sendMessage(id, "You have already been authenticated.");
+//             } else {
+//               updateDetails(id, reply);
+//             }
+//           });
+//         } else {
+//           bot.sendMessage(msg.chat.id, "Matric number is not recognised. Please try again.");
+//           getMatricNumber(count + 1);
+//         }
+//       });
+//     }
+//   });
+// }
+
+// function updateDetails(id, matric) {
+//   bot.sendMessage(id, "Please input your full name using the following format:",
+//     "/name Bob Tan.");
+//     .then(() => {
+//       bot.once('message', (msg) => {
+//         const name = msg.text;
+//         bot.sendMessage(id, "You have been authenticated.");
+
+//         idRef.child(id).set({
+//           name: name,
+//           matric: matric,
+//           teleid: id,
+//           collected: false
+//         })
+//       });
+//     });
+// }
 // Feature 2: Submit survey
 // choose which survey they want to submit
 let survey;
@@ -140,28 +196,6 @@ function getsurvey() {
           }
         return;
       })}
-bot.onText(/\/queue/, (msg) => {
-  console.log("currQueueNum", currQueueNum);
-  console.log("id", msg.from.id);
-  const id = msg.from.id;
-
-  idRef.child(id).once('value', function(snapshot) {
-    const userDetails = snapshot.val();
-    if (userDetails.queueNum != undefined) {
-      bot.sendMessage(id, "You are already in the queue. Your current queue numeber is " + 
-        userDetails.queueNum);
-    } else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
-      bot.sendMessage(id, "You have not completed the necessary surveys and forms.");
-    } else {
-      idRef.child(id).update({
-        queueNum: currQueueNum++
-      });
-      console.log("queunum", userDetails.queueNum);
-      bot.sendMessage(id, "Your queue number is " + (currQueueNum - 1));
-    }
-  });
-});
-
 
 // Feature 3: queue
 bot.onText(/\/queue/, (msg) => {
@@ -185,6 +219,3 @@ bot.onText(/\/queue/, (msg) => {
     }
   });
 });
-
-
-
