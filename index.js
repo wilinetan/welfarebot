@@ -149,64 +149,6 @@ bot.onText(/\/submitfaculty/, function (msg) {
           }}})});
 
 
-// let survey;
-// bot.onText(/\/submit/, (msg) => {
-//   bot.sendMessage(msg.chat.id,'Okay, which survey?', {
-//     reply_markup: {
-//       inline_keyboard: [[
-//         {
-//           text: 'NUSSU',
-//           callback_data: 'nussu'
-//         },{
-//           text: 'Faculty',
-//           callback_data: 'faculty'
-//         }
-//       ]]
-//     }
-//   });
-// });
-// bot.on("polling_error", (err) => console.log(err));
-// bot.on("callback_query", (callbackQuery) => {
-//   survey = callbackQuery.data
-//   chat_id = callbackQuery.message.chat.id 
-//   message_id = callbackQuery.message.message_id
-//   bot.deleteMessage(chat_id.toString(), message_id.toString())
-//   bot.sendMessage(chat_id, "Send me the photo.");
-//   // getsurvey()
-//   return;
-// });
-
-
-// var async = require("async");
-// function getsurvey() {
-//   bot.on('message', async (msg) => {
-//     if (msg.photo && msg.photo[0]) {
-//       console.log(msg)
-//       const personid = msg.from.id.toString()
-//       const file_id = msg.photo[0].file_id
-//       const fileinfo = await bot.getFile(file_id)
-//       const {file_path} = fileinfo
-//       console.log(file_id)
-//       console.log(fileinfo)
-//       console.log(file_path)
-//       const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
-//       console.log(url)
-//       idRef.once('value', function(snapshot) {
-//         if (snapshot.hasChild(personid)) {
-//             if (survey == "nussu") {
-//               idRef.child(personid).update({
-//                 nussu:url
-//               })
-//               bot.sendMessage(msg.chat.id, "NUSSU Survey proof received!")}
-//             else if (survey == "faculty") {
-//               idRef.child(personid).update({
-//                 faculty:url
-//               })
-//               bot.sendMessage(msg.chat.id, "Faculty Survey proof received!")}
-//             }})
-//           }
-//         return;
-//       })}
 
 // Feature 3: Queue
 let currQueueNum = 0;
@@ -233,27 +175,3 @@ bot.onText(/\/queue/, (msg) => {
   })
 });
 
-
-
-
-
-// trytrytry
-
-// bot.onText(/questions/, function (msg) {
-//   bot.sendMessage(msg.chat.id, "Enter your name").then(function () {
-//       answerCallbacks[msg.chat.id] = function (answer) {
-//           var name = answer.text;
-//           bot.sendMessage(msg.chat.id, "Enter your address").then(function () {
-//               answerCallbacks[msg.chat.id] = function (answer) {
-//                   var address = answer.text;
-//                   bot.sendMessage(msg.chat.id, "Enter your phone number").then(function () {
-//                       answerCallbacks[msg.chat.id] = function (answer) {
-//                           var phone = answer.text;
-//                           bot.sendMessage(msg.chat.id, name + address + phone + " saved!");
-//                       }
-//                   });
-//               }
-//           });
-//       }
-//   });
-// });
