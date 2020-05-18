@@ -80,9 +80,9 @@ bot.onText(/\/name/, (msg, reply) => {
   idRef.child(id).update({
     name: name
   });
-
   bot.sendMessage(id, "You have been authenticated");
 });
+
 
 // Feature 2: Submit survey
 process.on('uncaughtException', function (error) {
