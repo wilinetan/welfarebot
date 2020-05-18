@@ -84,69 +84,24 @@ function updateDetails(id, matric) {
     });
 }
 
+bot.onText(/\/queue/, (msg) => {
+  console.log("currQueueNum", currQueueNum);
+  console.log("id", msg.from.id);
+  const id = msg.from.id;
 
-// bot.on('message', (msg) => {
-//   sheetRef.on('value', function(snapshot) {
-//     let snap = snapshot.val();
-//     for (i in snap){
-//      console.log("\n" + i);
-//     //   for (n in snap[i]){
-//     //        console.log(n, snap[i][n])     
-//     // }
-//     sheetRef.on("value", function(snapshot) {
-//       console.log(snapshot.val());
-//     }, function (errorObject) {
-//       console.log("The read failed: " + errorObject.code);
-//     });
-// }
-// });
-
-// let siteUrl;
-// bot.onText(/\/bookmark (.+)/, (msg, match) => {
-//   siteUrl = match[1];
-//   bot.sendMessage(msg.chat.id,'Got it, in which category?', {
-//     reply_markup: {
-//       inline_keyboard: [[
-//         {
-//           text: 'Development',
-//           callback_data: 'development'
-//         },{
-//           text: 'Music',
-//           callback_data: 'music'
-//         },{
-//           text: 'Cute monkeys',
-//           callback_data: 'cute-monkeys'
-//         }
-//       ]]
-//     }
-//   });
-// });
-
-// bot.on("callback_query", (callbackQuery) => {
-//     const message = callbackQuery.message;
-//     ogs({'url': siteUrl}, function (error, results) {
-//       if(results.success) {
-//         sitesRef.push().set({
-//           name: results.data.ogSiteName,
-//           title: results.data.ogTitle,
-//           description: results.data.ogDescription,
-//           url: siteUrl,
-//           thumbnail: results.data.ogImage.url,
-//           category: callbackQuery.data
-//         });
-//         bot.sendMessage(message.chat.id,'Added \"' + results.data.ogTitle +'\" to category \"' + callbackQuery.data + '\"!')
-//   } else {
-//         sitesRef.push().set({
-//           url: siteUrl
-//         });
-//         bot.sendMessage(message.chat.id,'Added new website, but there was no OG data!');
-//       }
-//     });
-//   });
-
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//  response.send("Hello from Firebase!");
-// });
+  idRef.child(id).once('value', function(snapshot) {
+    const userDetails = snapshot.val();
+    // if (userDetails.queueNum != undefined) {
+    //   bot.sendMessage(id, "You are already in the queue. Your current queue numeber is " + 
+    //     userDetails.queueNum);
+    // } else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
+    //   bot.sendMessage(id, "You have not completed the necessary surveys and forms.");
+    // } else {
+      idRef.child(id).update({
+        queueNum: currQueueNum++
+      });
+      // console.log("queunum", userDetails.queueNum);
+      bot.sendMessage(id, "Your queue number is " + (currQueueNum - 1));
+    // }
+  });
+});
