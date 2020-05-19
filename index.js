@@ -61,7 +61,6 @@ function getMatricNumber(count, matric, id) {
               teleid: id,
               collected: false
             })
-            // updateDetails(id, reply);
           }
         });
       } else {
