@@ -24,18 +24,18 @@ const idRef = sitesRef.child("ids");
 
 // Feature 1: Authentication
 bot.onText(/\/start/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'Please input your matric number with the following ' + 
+  bot.sendMessage(msg.chat.id, 'Please input your matric number in the following ' + 
     'format: "/matric Axxxxxxxx".');
 });
 
 bot.onText(/\/matric/, (msg, reply) => {
-  const mat = reply.input.split(" ")[1];
-  const matric = mat.toUpperCase();
+  const arr = reply.input.split(" ")[1];
+  const matric = arr.toUpperCase();
   console.log("matric", matric, typeof matric);
-  getMatricNumber(0, matric, msg.chat.id);
+  getMatricNumber(matric, msg.chat.id);
 });
 
-function getMatricNumber(count, matric, id) {
+function getMatricNumber(matric, id) {
   function isLetter(str) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
@@ -60,8 +60,7 @@ function getMatricNumber(count, matric, id) {
               matric: matric,
               teleid: id,
               collected: false
-            })
-            // updateDetails(id, reply);
+            });
           }
         });
       } else {
@@ -80,7 +79,8 @@ bot.onText(/\/name/, (msg, reply) => {
   idRef.child(id).update({
     name: name
   });
-  bot.sendMessage(id, "You have been authenticated");
+  bot.sendMessage(id, "You have been authenticated. Please move on to submit the relevant forms using " + 
+    "/submitnussu and /submitfaculty before finally getting a queue number using /queue.");
 });
 
 
@@ -102,51 +102,56 @@ bot.on('message', function (msg) {
   }
 });
 
-bot.onText(/\/submitnussu/,function (msg) {
-bot.sendMessage(msg.chat.id, "Send your NUSSU photo").then(function () {
-  answerCallbacks[msg.chat.id] = async function (answer) {
-    if (answer.photo && answer.photo[0]) {
-      const personid = answer.from.id.toString()
-      const file_id = answer.photo[0].file_id
-      const fileinfo = await bot.getFile(file_id)
-      const {file_path} = fileinfo
-      const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
-      console.log(url)
-      idRef.once('value', function(snapshot) {
-        if (snapshot.hasChild(personid)) {
+bot.onText(/\/submitnussu/, function (msg) {
+  bot.sendMessage(msg.chat.id, "Send your NUSSU photo")
+    .then(function () {
+      answerCallbacks[msg.chat.id] = async function (answer) {
+        if (answer.photo && answer.photo[0]) {
+          const personid = answer.from.id.toString();
+          const file_id = answer.photo[0].file_id;
+          const fileinfo = await bot.getFile(file_id);
+          const {file_path} = fileinfo;
+          const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path;
+          console.log(url);
+          idRef.once('value', function(snapshot) {
+            if (snapshot.hasChild(personid)) {
               idRef.child(personid).update({
-                nussu:url
-              })
-      bot.sendMessage(answer.chat.id, "NUSSU Survey proof received!")
+                ussu:url
+              });
+              bot.sendMessage(answer.chat.id, "NUSSU Survey proof received!");
             }
-          })
+          });
         }
       }
-    })
-  });
+    });
+});
 
 bot.onText(/\/submitfaculty/, function (msg) {
-  bot.sendMessage(msg.chat.id, "Send your Faculty photo").then(function () {
-    answerCallbacks[msg.chat.id] = async function (answer) {
-      if (answer.photo && answer.photo[0]) {
-        const personid = answer.from.id.toString()
-        const file_id = answer.photo[0].file_id
-        const fileinfo = await bot.getFile(file_id)
-        const {file_path} = fileinfo
-        console.log(file_id)
-        console.log(fileinfo)
-        console.log(file_path)
-        const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
-        console.log(url)
-        idRef.once('value', function(snapshot) {
-          if (snapshot.hasChild(personid)) {
-                idRef.child(personid).update({
-                  faculty:url
-                })
-        bot.sendMessage(answer.chat.id, "Faculty Survey proof received!")}
-              }
-            )
-          }}})});
+  bot.sendMessage(msg.chat.id, "Send your Faculty photo")
+    .then(function () {
+      answerCallbacks[msg.chat.id] = async function (answer) {
+        if (answer.photo && answer.photo[0]) {
+          const personid = answer.from.id.toString();
+          const file_id = answer.photo[0].file_id;
+          const fileinfo = await bot.getFile(file_id);
+          const {file_path} = fileinfo;
+          console.log(file_id);
+          console.log(fileinfo);
+          console.log(file_path);
+          const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path;
+          console.log(url);
+          idRef.once('value', function(snapshot) {
+            if (snapshot.hasChild(personid)) {
+              idRef.child(personid).update({
+                faculty:url
+              });
+              bot.sendMessage(answer.chat.id, "Faculty Survey proof received!");
+            }
+          });
+        }
+      }
+    });
+});
 
 
 
@@ -161,17 +166,14 @@ bot.onText(/\/queue/, (msg) => {
     if (userDetails.queueNum != undefined) {
       bot.sendMessage(id, "You are already in the queue. Your current queue numeber is " + 
         snapshot.val().queueNum);
-    } 
-    else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
+    } else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
       bot.sendMessage(id, "You have not completed the necessary surveys and forms.");
-    } 
-    else {
-      currQueueNum = currQueueNum+1
+    } else {
+      currQueueNum = currQueueNum++;
       bot.sendMessage(id, "Your queue number is " + currQueueNum.toString() + ".");
       idRef.child(id).update({
         queueNum : currQueueNum
       });
     }
-  })
+  });
 });
-
