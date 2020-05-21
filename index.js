@@ -25,16 +25,24 @@ const idRef = sitesRef.child("ids");
 // Feature 1: Authentication
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id, 'Please input your matric number in the following ' + 
-    'format: "/matric Axxxxxxxx".');
+    'format: "matric <Axxxxxxxx>".');
 });
+
 // matric
-bot.onText(/\/matric/, (msg, reply) => {
-  const arr = reply.input.split(" ")[1];
-  const matric = arr.toUpperCase();
-  console.log("matric", matric, typeof matric);
-  getMatricNumber(matric, msg.chat.id);
+bot.onText(/matric/, (msg, reply) => {
+  const input = reply.input;
+  const id = msg.chat.id;
+  if (input.length <= 6) {
+    bot.sendMessage(id, 'Please input your matric number with the correct format: "matric <Axxxxxxxx>".');
+  } else {
+    const arr = input.split(" ")[1];
+    const matric = arr.toUpperCase();
+    updateMatricNumber(matric, id);
+  }
 });
-function getMatricNumber(matric, id) {
+
+
+function updateMatricNumber(matric, id) {
   function isLetter(str) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
@@ -53,8 +61,7 @@ function getMatricNumber(matric, id) {
           if (snap.hasChild(id.toString())) {
             bot.sendMessage(id, "You have already been authenticated.");
           } else {
-            bot.sendMessage(id, "Please input your full name using the following format: " +
-              "/name Bob Tan");
+            bot.sendMessage(id, 'Please input your full name with the correct format: "name <your full name>".');
             idRef.child(id).set({
               matric: matric,
               teleid: id,
@@ -68,19 +75,27 @@ function getMatricNumber(matric, id) {
     });
   }
 }
-// name
-bot.onText(/\/name/, (msg, reply) => {
-  const id = msg.chat.id;
-  const arr = reply.input.split(" ");
-  arr.shift();
-  const name = arr.join(" ");
 
-  idRef.child(id).update({
-    name: name
-  });
-  bot.sendMessage(id, "You have been authenticated. Please move on to submit the relevant forms using " + 
-    "/submitnussu and /submitfaculty before finally getting a queue number using /queue.");
+// name
+bot.onText(/name/, (msg, reply) => {
+  const id = msg.chat.id;
+  const input = reply.input;
+  if (input.length <= 4) {
+    bot.sendMessage(id, 'Please input your full name with the correct format: "name <your full name>".');
+  } else {
+    const arr = input.split(" ");
+    arr.shift();
+    const name = arr.join(" ");
+  
+    idRef.child(id).update({
+      name: name
+    });
+    bot.sendMessage(id, "You have been authenticated.\nPlease move on to submit the relevant forms using " + 
+      "/submitnussu and /submitfaculty before finally getting a queue number using /queue.");
+  }
 });
+
+
 
 // Feature 2: Submit survey
 process.on('uncaughtException', function (error) {
@@ -97,9 +112,10 @@ bot.on('message', function (msg) {
     return callback(msg);
   }
 });
+
 // nussu
 bot.onText(/\/submitnussu/, function (msg) {
-  bot.sendMessage(msg.chat.id, "Send your NUSSU photo")
+  bot.sendMessage(msg.chat.id, "Send proof of completing NUSSU Survey (screenshot).")
     .then(function () {
       answerCallbacks[msg.chat.id] = async function (answer) {
         if (answer.photo && answer.photo[0]) {
@@ -121,9 +137,10 @@ bot.onText(/\/submitnussu/, function (msg) {
       }
     });
 });
+
 // faculty
 bot.onText(/\/submitfaculty/, function (msg) {
-  bot.sendMessage(msg.chat.id, "Send your Faculty photo")
+  bot.sendMessage(msg.chat.id, "Send proof of completing Faculty Survey (screenshot).")
     .then(function () {
       answerCallbacks[msg.chat.id] = async function (answer) {
         if (answer.photo && answer.photo[0]) {
@@ -149,6 +166,8 @@ bot.onText(/\/submitfaculty/, function (msg) {
     });
 });
 
+
+
 // Feature 3: Queue
 // set up Q details in firebase 
 const queueRef = sitesRef.child("queueDetails");
@@ -156,11 +175,13 @@ queueRef.set({
   currServing: 0,
   currQueueNum: 0
 });
+
 // Q details: firebase --> tele bot
 let currServing;
 queueRef.child("currServing").on('value', function(snapshot) {
   currServing = snapshot.val();
 });
+
 // join Q command
 let currQueueNum = 0;
 bot.onText(/\/queue/, (msg) => {
@@ -172,10 +193,10 @@ bot.onText(/\/queue/, (msg) => {
     if (userDetails.collected) {
       bot.sendMessage(id, "You have already collected the welfare pack.");
     } else if (userDetails.queueNum != undefined) {
-      bot.sendMessage(id, "You are already in the queue. Your current queue numeber is " + 
+      bot.sendMessage(id, "You are already in the queue. Your current queue number is " + 
         userDetails.queueNum);
     } else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
-      bot.sendMessage(id, "You have not completed the necessary surveys and forms.");
+      bot.sendMessage(id, "You have not completed the necessary surveys and forms. Please submit using /submitnussu and /submitfaculty.");
     } else {
       currQueueNum++;
       idRef.child(id).update({
@@ -185,20 +206,27 @@ bot.onText(/\/queue/, (msg) => {
         currQueueNum: currQueueNum
       });
       bot.sendMessage(id, "Your queue number is " + currQueueNum.toString() + 
-      ". We will notify you when your turn is near");
+      ". We will notify you when your turn is near.");
     }
   });
 });
 
+
+
 // Feature 4: notify user when turn is near
 queueRef.child("currServing").on("value", function(snapshot) {
   const currServing = snapshot.val();
-  idRef.orderByChild("queueNum").startAt(currServing + 1).endAt(currServing + 1)
+  idRef.orderByChild("queueNum").startAt(currServing + 1).endAt(currServing + 3)
   .on("child_added", function(snap) {
     const id = snap.val().teleid;
-    bot.sendMessage(id, "Your turn is nearing. Plese head over to the collection venue.");
+    const num = (snap.val().queueNum - currServing - 1).toString();
+    const pronoun = num == 0 || num == 1 ? " is " : " are "; 
+    const word = num == 0 || num == 1 ? " person " : " people ";
+    bot.sendMessage(id, "Your turn is nearing. There" + pronoun + num + word + "infront of you." +  
+      " Plese head over to the collection venue.");
   });
 });
+
 
 // Feature 5: check number of users ahead of them
 bot.onText(/\/checkqueue/, (msg) => {
@@ -209,28 +237,47 @@ bot.onText(/\/checkqueue/, (msg) => {
     if (details.collected) {
       bot.sendMessage(id, "You have already collected the welfare pack.");
     } else if (details.queueNum == undefined) {
-      bot.sendMessage(id, "You do not have a queue number yet.");
+      bot.sendMessage(id, "You do not have a queue number yet. Join the /queue now.");
     } else {
       const num = details.queueNum - currServing - 1;
-      bot.sendMessage(id, "There are " + num.toString() + " people infront of you.");
+      if (num == 0 || num == 1) {
+        bot.sendMessage(id, "There is " + num.toString() + " person infront of you.");
+      }
+      else {
+        bot.sendMessage(id, "There are " + num.toString() + " people infront of you.");
+      }
     }
   });
 });
 
+
+
 // Feature 6: Provide information about the welfare pack event. 
-bot.onText(/\/info/, (msg) =>{
-  const location = ;
-  const date = ;
-  const starttime = ;
-  const endtime = ;
-  bot.sendMessage(msg.chat.id, "The welfare pack collection will be held at " + location + ", on " + date + ", from " + starttime.toString() + 
-  " to " + endtime.toString())
-} );
+// let location;
+// let date;
+// let starttime;
+// let endtime;
+// queueRef.child("location").on('value', function(snapshot) {
+//   location = snapshot.val();
+// });
+// queueRef.child("date").on('value', function(snapshot) {
+//   date = snapshot.val();
+// });
+// queueRef.child("starttime").on('value', function(snapshot) {
+//   starttime = snapshot.val();
+// });
+// queueRef.child("endtime").on('value', function(snapshot) {
+//   endtime = snapshot.val();
+// });
+// bot.onText(/\/info/, (msg) =>{
+//   bot.sendMessage(msg.chat.id, "The welfare pack collection will be held at " + location + ", on " + date + ", from " + starttime.toString() + 
+//   " to " + endtime.toString())
+// });
 
 
 // Feature 7*: Choose the snacks they want
-bot.onText(/\/snacks/, (msg) => {
-    bot.sendMessage(msg.chat.id,'Which flavour do you like most?', {
+bot.onText(/\/flavour/, (msg) => {
+    bot.sendMessage(msg.chat.id,'What is your favourite flavour?', {
       reply_markup: {
         inline_keyboard: [[
           {
@@ -247,32 +294,19 @@ bot.onText(/\/snacks/, (msg) => {
       }
     });
   });
-flavour = callbackQuery.data
-chat_id = callbackQuery.message.chat.id 
-message_id = callbackQuery.message.message_id
-bot.deleteMessage(chat_id.toString(), message_id.toString())
-bot.sendMessage(chat_id, "Okay noted!!");
 
-  // getsurvey()
-function getsurvey() {
-  bot.on('message', async (msg) => {
-    if (msg.photo && msg.photo[0]) {
-      bot.sendMessage(msg.chat.id, "Photo Received!")
-      const personid = msg.from.id.toString()
-      const file_id = msg.photo[0].file_id
-      const fileinfo = await bot.getFile(file_id)
-      const {file_path} = fileinfo
-      const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path
-      console.log(url)
-      idRef.once('value', function(snapshot) {
-        if (snapshot.hasChild(personid)) {
-            if (survey == "nussu") {
-              idRef.child(personid).update({
-                nussu:url
-              })}
-            else if (survey == "faculty") {
-              idRef.child(personid).update({
-                faculty:url
-              })}
-            }})
-          }})}
+bot.on("callback_query", (callbackQuery) => {
+  const flavour = callbackQuery.data
+  const chat_id = callbackQuery.message.chat.id 
+  const message_id = callbackQuery.message.message_id
+  bot.deleteMessage(chat_id.toString(), message_id.toString())
+  idRef.once('value', function(snapshot) {
+    if (snapshot.hasChild(chat_id.toString())) {
+      idRef.child(chat_id).update({
+        flavour: flavour
+      })
+      bot.sendMessage(chat_id, "Received!")
+    }
+  return;
+  })
+});
