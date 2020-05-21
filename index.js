@@ -1,18 +1,20 @@
 const TelegramBot = require('node-telegram-bot-api');
 // const ogs = require('open-graph-scraper');
 const firebase = require('firebase');
+const dotenv = require('dotenv');
 
-// const token = '1058971103:AAGRkzUyDeVEiCrpXkY6IpooTiCb0T7eLtU';
-const token = '1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU';
+dotenv.config();
+
+const token = process.env.TELEGRAM_API_TOKEN;
 const bot = new TelegramBot(token, {polling: true});
 
 const app = firebase.initializeApp({
-  apiKey: "AIzaSyCLYVSnDM2G6vqu_CFtEFCgANKOTg1quDU",
-  authDomain: "welfarebot-a92e0.firebaseapp.com",
-  databaseURL: "https://welfarebot-a92e0.firebaseio.com",
-  projectId: "welfarebot-a92e0",
-  storageBucket: "welfarebot-a92e0.appspot.com",
-  messagingSenderId: "8047391542",
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
 });
 
 const ref = firebase.database().ref();
@@ -29,13 +31,13 @@ bot.onText(/\/start/, (msg) => {
 });
 
 // matric
-bot.onText(/matric/, (msg, reply) => {
-  const input = reply.input;
+bot.onText(/matric/, (msg) => {
+  const reply = msg.text;
   const id = msg.chat.id;
-  if (input.length <= 6) {
+  if (reply.length <= 6) {
     bot.sendMessage(id, 'Please input your matric number with the correct format: "matric <Axxxxxxxx>".');
   } else {
-    const arr = input.split(" ")[1];
+    const arr = reply.split(" ")[1];
     const matric = arr.toUpperCase();
     updateMatricNumber(matric, id);
   }
@@ -57,16 +59,15 @@ function updateMatricNumber(matric, id) {
     sheetRef.once('value', function(snapshot) {
       if (snapshot.hasChild(matric)) {
         idRef.once('value', function(snap) {
-
           if (snap.hasChild(id.toString())) {
             bot.sendMessage(id, "You have already been authenticated.");
           } else {
-            bot.sendMessage(id, 'Please input your full name with the correct format: "name <your full name>".');
             idRef.child(id).set({
               matric: matric,
               teleid: id,
               collected: false
             });
+            bot.sendMessage(id, 'Please input your full name with the correct format: "name <your full name>".');
           }
         });
       } else {
@@ -77,13 +78,13 @@ function updateMatricNumber(matric, id) {
 }
 
 // name
-bot.onText(/name/, (msg, reply) => {
+bot.onText(/name/, (msg) => {
   const id = msg.chat.id;
-  const input = reply.input;
-  if (input.length <= 4) {
+  const reply = msg.text;
+  if (reply.length <= 4) {
     bot.sendMessage(id, 'Please input your full name with the correct format: "name <your full name>".');
   } else {
-    const arr = input.split(" ");
+    const arr = reply.split(" ");
     arr.shift();
     const name = arr.join(" ");
   
@@ -101,10 +102,13 @@ bot.onText(/name/, (msg, reply) => {
 process.on('uncaughtException', function (error) {
   console.log("\x1b[31m", "Exception: ", error, "\x1b[0m");
 });
+
 process.on('unhandledRejection', function (error, p) {
   console.log("\x1b[31m","Error: ", error.message, "\x1b[0m");
 });
+
 var answerCallbacks = {};
+
 bot.on('message', function (msg) {
   var callback = answerCallbacks[msg.chat.id];
   if (callback) {
@@ -123,12 +127,12 @@ bot.onText(/\/submitnussu/, function (msg) {
           const file_id = answer.photo[0].file_id;
           const fileinfo = await bot.getFile(file_id);
           const {file_path} = fileinfo;
-          const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path;
+          const url = "https://api.telegram.org/file/bot" + process.env.TELEGRAM_API_TOKEN + "/" + file_path;
           console.log(url);
           idRef.once('value', function(snapshot) {
             if (snapshot.hasChild(personid)) {
               idRef.child(personid).update({
-                nussu:url
+                nussu: url
               });
               bot.sendMessage(answer.chat.id, "NUSSU Survey proof received!");
             }
@@ -151,12 +155,12 @@ bot.onText(/\/submitfaculty/, function (msg) {
           console.log(file_id);
           console.log(fileinfo);
           console.log(file_path);
-          const url = "https://api.telegram.org/file/bot" + "1140161041:AAFcapOrmPbMdyEdLY9azOhB-Nt8LJoLyqU" + "/" + file_path;
+          const url = "https://api.telegram.org/file/bot" + process.env.TELEGRAM_API_TOKEN + "/" + file_path;
           console.log(url);
           idRef.once('value', function(snapshot) {
             if (snapshot.hasChild(personid)) {
               idRef.child(personid).update({
-                faculty:url
+                faculty: url
               });
               bot.sendMessage(answer.chat.id, "Faculty Survey proof received!");
             }
@@ -196,7 +200,8 @@ bot.onText(/\/queue/, (msg) => {
       bot.sendMessage(id, "You are already in the queue. Your current queue number is " + 
         userDetails.queueNum);
     } else if (userDetails.nussu == undefined || userDetails.faculty == undefined) {
-      bot.sendMessage(id, "You have not completed the necessary surveys and forms. Please submit using /submitnussu and /submitfaculty.");
+      bot.sendMessage(id, "You have not completed the necessary surveys and forms. " + 
+        "Please submit using /submitnussu and /submitfaculty.");
     } else {
       currQueueNum++;
       idRef.child(id).update({
@@ -222,8 +227,8 @@ queueRef.child("currServing").on("value", function(snapshot) {
     const num = (snap.val().queueNum - currServing - 1).toString();
     const pronoun = num == 0 || num == 1 ? " is " : " are "; 
     const word = num == 0 || num == 1 ? " person " : " people ";
-    bot.sendMessage(id, "Your turn is nearing. There" + pronoun + num + word + "infront of you." +  
-      " Plese head over to the collection venue.");
+    bot.sendMessage(id, "Your turn is nearing. There" + pronoun + num + word + "infront of you. " +  
+      "Plese head over to the collection venue.");
   });
 });
 
@@ -242,8 +247,7 @@ bot.onText(/\/checkqueue/, (msg) => {
       const num = details.queueNum - currServing - 1;
       if (num == 0 || num == 1) {
         bot.sendMessage(id, "There is " + num.toString() + " person infront of you.");
-      }
-      else {
+      } else {
         bot.sendMessage(id, "There are " + num.toString() + " people infront of you.");
       }
     }
@@ -296,17 +300,17 @@ bot.onText(/\/flavour/, (msg) => {
   });
 
 bot.on("callback_query", (callbackQuery) => {
-  const flavour = callbackQuery.data
-  const chat_id = callbackQuery.message.chat.id 
-  const message_id = callbackQuery.message.message_id
-  bot.deleteMessage(chat_id.toString(), message_id.toString())
+  const flavour = callbackQuery.data;
+  const chat_id = callbackQuery.message.chat.id;
+  const message_id = callbackQuery.message.message_id;
+  bot.deleteMessage(chat_id.toString(), message_id.toString());
   idRef.once('value', function(snapshot) {
     if (snapshot.hasChild(chat_id.toString())) {
       idRef.child(chat_id).update({
         flavour: flavour
-      })
-      bot.sendMessage(chat_id, "Received!")
+      });
+      bot.sendMessage(chat_id, "Received!");
     }
   return;
-  })
+  });
 });
