@@ -21,6 +21,7 @@ const ref = firebase.database().ref();
 const sitesRef = ref.child("14MeO__j9jCngVkWmjCB4H4HetHmfE15V8fJNnTVAaXQ");
 const sheetRef = sitesRef.child("Sheet1");
 const idRef = sitesRef.child("ids");
+const adRef = sitesRef.child("admin")
 
 
 
@@ -119,7 +120,9 @@ bot.on('message', function (msg) {
 
 // nussu
 bot.onText(/\/submitnussu/, function (msg) {
-  bot.sendMessage(msg.chat.id, "Send proof of completing NUSSU Survey (screenshot).")
+  adRef.child("nussulink").once('value', function(snapshot) {
+    const link = snapshot.val();
+  bot.sendMessage(msg.chat.id, "Survey link is " + link + ". Send proof of completing NUSSU Survey (screenshot).")
     .then(function () {
       answerCallbacks[msg.chat.id] = async function (answer) {
         if (answer.photo && answer.photo[0]) {
@@ -140,11 +143,14 @@ bot.onText(/\/submitnussu/, function (msg) {
         }
       }
     });
+  })
 });
 
 // faculty
 bot.onText(/\/submitfaculty/, function (msg) {
-  bot.sendMessage(msg.chat.id, "Send proof of completing Faculty Survey (screenshot).")
+  adRef.child("facultylink").once('value', function(snapshot) {
+    const link = snapshot.val();
+  bot.sendMessage(msg.chat.id, "Survey link is " + link + ". Send proof of completing Faculty Survey (screenshot).")
     .then(function () {
       answerCallbacks[msg.chat.id] = async function (answer) {
         if (answer.photo && answer.photo[0]) {
@@ -168,6 +174,7 @@ bot.onText(/\/submitfaculty/, function (msg) {
         }
       }
     });
+  })
 });
 
 
@@ -242,7 +249,17 @@ bot.onText(/\/checkqueue/, (msg) => {
     if (details.collected) {
       bot.sendMessage(id, "You have already collected the welfare pack.");
     } else if (details.queueNum == undefined) {
-      bot.sendMessage(id, "You do not have a queue number yet. Join the /queue now.");
+      queueRef.once('value', function(snapshot) {
+        const details = snapshot.val();
+        const x = details.currQueueNum - details.currServing
+        if (x == 0) {
+          bot.sendMessage(id, "There is no one in the queue. You do not have a queue number yet. Join the /queue now.");
+        } else if (x == 1) {
+          bot.sendMessage(id, "There is " + x.toString() + " people infront of you. You do not have a queue number yet. Join the /queue now.");
+        } else {
+          bot.sendMessage(id, "There are " + x.toString() + " people infront of you. You do not have a queue number yet. Join the /queue now.");
+        }
+      })
     } else {
       const num = details.queueNum - currServing - 1;
       if (num == 0 || num == 1) {
@@ -257,26 +274,14 @@ bot.onText(/\/checkqueue/, (msg) => {
 
 
 // Feature 6: Provide information about the welfare pack event. 
-// let location;
-// let date;
-// let starttime;
-// let endtime;
-// queueRef.child("location").on('value', function(snapshot) {
-//   location = snapshot.val();
-// });
-// queueRef.child("date").on('value', function(snapshot) {
-//   date = snapshot.val();
-// });
-// queueRef.child("starttime").on('value', function(snapshot) {
-//   starttime = snapshot.val();
-// });
-// queueRef.child("endtime").on('value', function(snapshot) {
-//   endtime = snapshot.val();
-// });
-// bot.onText(/\/info/, (msg) =>{
-//   bot.sendMessage(msg.chat.id, "The welfare pack collection will be held at " + location + ", on " + date + ", from " + starttime.toString() + 
-//   " to " + endtime.toString())
-// });
+bot.onText(/\/admindetails/, (msg) => {
+  const id = msg.from.id
+  adRef.once('value', function(snapshot) {
+    const details = snapshot.val();
+    bot.sendMessage(id, "Collection venue: " + details.venue + "\nCollection date: " + details.startdate + " to " + details.enddate + "\nCollection time: " + details.starttime + "-" + details.endtime)
+  });
+});
+
 
 
 // Feature 7*: Choose the snacks they want
