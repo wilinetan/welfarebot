@@ -17,7 +17,7 @@ const app = firebase.initializeApp({
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
 });
 
-const ref = firebase.database().ref();
+const ref = firebase.database().ref("Computing");
 // const sitesRef = ref.child("14MeO__j9jCngVkWmjCB4H4HetHmfE15V8fJNnTVAaXQ");
 // const sheetRef = sitesRef.child("Sheet1");
 // const idRef = sitesRef.child("ids");
@@ -76,6 +76,7 @@ function updateMatricNumber(matric, id) {
               matric: matric,
               teleid: id,
               collected: false,
+              surveyVerified: false,
             });
             bot.sendMessage(
               id,
@@ -222,10 +223,10 @@ bot.onText(/\/submitfaculty/, function (msg) {
 // Feature 3: Queue
 // set up Q details in firebase
 const queueRef = ref.child("queueDetails");
-queueRef.set({
-  currServing: 0,
-  currQueueNum: 0,
-});
+// queueRef.set({
+//   currServing: 0,
+//   currQueueNum: 0,
+// });
 
 // Q details: firebase --> tele bot
 let currServing;
@@ -266,12 +267,21 @@ bot.onText(/\/queue/, (msg) => {
       queueRef.update({
         currQueueNum: currQueueNum,
       });
-      bot.sendMessage(
-        id,
-        "Your queue number is " +
-          currQueueNum.toString() +
-          ". We will notify you when your turn is near."
-      );
+      bot
+        .sendMessage(
+          id,
+          "Your queue number is " +
+            currQueueNum.toString() +
+            ". We will notify you when your turn is near."
+        )
+        .then(() => {
+          idRef.child(id).update({
+            queueNum: currQueueNum,
+          });
+          queueRef.update({
+            currQueueNum: currQueueNum,
+          });
+        });
     }
   });
 });
