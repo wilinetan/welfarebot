@@ -77,6 +77,7 @@ function updateMatricNumber(matric, id) {
               teleid: id,
               collected: false,
               surveyVerified: false,
+              queueNum: -1,
             });
             bot.sendMessage(
               id,
