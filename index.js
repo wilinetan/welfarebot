@@ -1,5 +1,4 @@
 const TelegramBot = require("node-telegram-bot-api");
-// const ogs = require('open-graph-scraper');
 const firebase = require("firebase");
 const dotenv = require("dotenv");
 
