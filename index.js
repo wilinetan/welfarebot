@@ -57,7 +57,7 @@ function updateMatricNumber(matric, id) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
 
-  if (matric.length != 9) {
+  if (matric.length !== 9) {
     bot.sendMessage(id, "Invalid matric number entered. Please try again.");
   } else if (
     !isLetter(matric.charAt(0)) ||
@@ -167,7 +167,7 @@ bot.onText(/\/submitnussu/, function (msg) {
               process.env.TELEGRAM_API_TOKEN +
               "/" +
               file_path;
-            console.log(url);
+
             idRef.once("value", function (snapshot) {
               if (snapshot.hasChild(personid)) {
                 idRef.child(personid).update({
@@ -205,15 +205,12 @@ bot.onText(/\/submitfaculty/, function (msg) {
             const file_id = answer.photo[0].file_id;
             const fileinfo = await bot.getFile(file_id);
             const { file_path } = fileinfo;
-            console.log(file_id);
-            console.log(fileinfo);
-            console.log(file_path);
             const url =
               "https://api.telegram.org/file/bot" +
               process.env.TELEGRAM_API_TOKEN +
               "/" +
               file_path;
-            console.log(url);
+
             idRef.once("value", function (snapshot) {
               if (snapshot.hasChild(personid)) {
                 idRef.child(personid).update({
@@ -249,7 +246,7 @@ bot.onText(/\/queue/, (msg) => {
     const userDetails = snapshot.val();
     if (userDetails.collected) {
       bot.sendMessage(id, "You have already collected the welfare pack.");
-    } else if (userDetails.queueNum != "-1" && !userDetails.missed) {
+    } else if (userDetails.queueNum !== -1 && !userDetails.missed) {
       bot.sendMessage(
         id,
         "You are already in the queue. Your current queue number is " +
@@ -305,9 +302,9 @@ queueRef.on("value", function (snapshot) {
     .endAt(currServing + 3)
     .on("child_added", function (snap) {
       const id = snap.val().teleid;
-      const num = (snap.val().queueNum - currServing - 1).toString();
-      const pronoun = num == 0 || num == 1 ? " is " : " are ";
-      const word = num == 0 || num == 1 ? " person " : " people ";
+      const num = snap.val().queueNum - currServing - 1;
+      const pronoun = num === 0 || num === 1 ? " is " : " are ";
+      const word = num === 0 || num === 1 ? " person " : " people ";
       bot.sendMessage(
         id,
         "Your turn is nearing. There" +
@@ -331,7 +328,7 @@ bot.onText(/\/checkqueue/, (msg) => {
     } else if (details.missed) {
       bot.sendMessage(
         id,
-        "You missed your turn. Get another queue number with /queue command."
+        "You missed your turn. Please get another queue number with /queue command."
       );
     } else if (details.queueNum == "-1") {
       queueRef.once("value", function (snapshot) {
@@ -404,7 +401,7 @@ bot.onText(/\/later/, (msg) => {
     const userDetails = snapshot.val();
     if (userDetails.collected) {
       bot.sendMessage(id, "You have already collected the welfare pack.");
-    } else if (userDetails.queueNum != "-1" && !userDetails.missed) {
+    } else if (userDetails.queueNum !== -1 && !userDetails.missed) {
       bot.sendMessage(
         id,
         "You are already in the queue. Your current queue number is " +
@@ -427,7 +424,6 @@ bot.onText(/\/later/, (msg) => {
         )
         .then(function () {
           answerCallbacks[msg.chat.id] = async function (answer) {
-            console.log("answer", answer);
             const duration = answer.text;
             if (isNaN(parseInt(duration)) || parseInt(duration) <= 0) {
               bot.sendMessage(
@@ -444,7 +440,6 @@ bot.onText(/\/later/, (msg) => {
             function queuef() {
               queueRef.child("currQueueNum").once("value", function (snapshot) {
                 var currQueueNum = snapshot.val() + 1;
-                console.log("currqueuenum", currQueueNum);
 
                 bot
                   .sendMessage(
@@ -485,14 +480,14 @@ bot.onText(/\/later/, (msg) => {
   });
 });
 
-let ts = Date.now();
-console.log(ts / 1000 / 60 / 60);
-var today = new Date();
-var time =
-  today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-console.log(time);
+// let ts = Date.now();
+// console.log(ts / 1000 / 60 / 60);
+// var today = new Date();
+// var time =
+//   today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+// console.log(time);
 
-// Extension feature: User who missed queue receives a notification to join the queue again
+// Feature 8*: User who missed queue receives a notification to join the queue again
 missedRef.on("value", function (snapshot) {
   const teleid = snapshot.val();
   if (!startCollection) {
