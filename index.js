@@ -253,8 +253,8 @@ bot.onText(/\/queue/, (msg) => {
           userDetails.queueNum
       );
     } else if (
-      userDetails.nussu == undefined ||
-      userDetails.faculty == undefined
+      userDetails.nussu === undefined ||
+      userDetails.faculty === undefined
     ) {
       bot.sendMessage(
         id,
@@ -330,21 +330,21 @@ bot.onText(/\/checkqueue/, (msg) => {
         id,
         "You missed your turn. Please get another queue number with /queue command."
       );
-    } else if (details.queueNum == "-1") {
+    } else if (details.queueNum === -1) {
       queueRef.once("value", function (snapshot) {
         const details = snapshot.val();
         const x = details.currQueueNum - details.currServing;
-        if (x == 0) {
+        if (x === 0) {
           bot.sendMessage(
             id,
             "There is no one in the queue. You do not have a queue number yet. Join the /queue now."
           );
-        } else if (x == 1) {
+        } else if (x === 1) {
           bot.sendMessage(
             id,
             "There is " +
               x.toString() +
-              " in the queue. You do not have a queue number yet. Join the /queue now."
+              " people in the queue. You do not have a queue number yet. Join the /queue now."
           );
         } else {
           bot.sendMessage(
@@ -357,7 +357,7 @@ bot.onText(/\/checkqueue/, (msg) => {
       });
     } else {
       const num = details.queueNum - currServing - 1;
-      if (num == 0 || num == 1) {
+      if (num === 0 || num === 1) {
         bot.sendMessage(
           id,
           "There is " + num.toString() + " person infront of you."
@@ -408,8 +408,8 @@ bot.onText(/\/later/, (msg) => {
           userDetails.queueNum
       );
     } else if (
-      userDetails.nussu == undefined ||
-      userDetails.faculty == undefined
+      userDetails.nussu === undefined ||
+      userDetails.faculty === undefined
     ) {
       bot.sendMessage(
         id,
@@ -490,15 +490,18 @@ bot.onText(/\/later/, (msg) => {
 // Feature 8*: User who missed queue receives a notification to join the queue again
 missedRef.on("value", function (snapshot) {
   const teleid = snapshot.val();
-  if (!startCollection) {
-    return;
-  }
-  if (teleid !== null) {
-    bot.sendMessage(
-      teleid,
-      "You have missed your turn. Please get another queue number with /queue command."
-    );
-  }
+  queueRef.once("value", function (snapshot) {
+    if (!snapshot.val().startCollection) {
+      return;
+    }
+
+    if (teleid !== null) {
+      bot.sendMessage(
+        teleid,
+        "You have missed your turn. Please get another queue number with /queue command."
+      );
+    }
+  });
 });
 
 // Feature 7*: Choose the snacks they want
