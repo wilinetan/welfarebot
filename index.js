@@ -25,6 +25,19 @@ const matricRef = ref.child("matric");
 const idRef = ref.child("ids");
 const adRef = ref.child("admin");
 
+var today = new Date();
+var h = today.getHours();
+var m = today.getMinutes();
+var t = h * 100 + m;
+console.log(t);
+function name(t) {
+	adRef.once("value", function (snapshot) {
+		const details = snapshot.val();
+		diff = parseInt(details.starttime) - parseInt(t);
+	});
+}
+let diff = name(t);
+
 // Feature 1: Authentication
 bot.onText(/\/start/, (msg) => {
 	bot.sendMessage(
@@ -259,7 +272,22 @@ bot.onText(/\/queue/, (msg) => {
 				"You have not completed the necessary surveys and forms. " +
 					"Please submit using /submitnussu and /submitfaculty."
 			);
-		} else {
+		} else if (diff > 100) {
+			bot.sendMessage(
+				id,
+				"You can only join queue 1 hour before collection start time. Please use /admindetails to check the start time."
+			);
+		}
+
+		// 	//if parseInt(time) < parseInt(details.starttime) - 100
+		//
+		// ) {
+		// 	bot.sendMessage(
+		// 		id,
+		// 		"You can only join queue at 1500."
+		// 	)
+		// }
+		else {
 			bot
 				.sendMessage(
 					id,
@@ -396,6 +424,11 @@ bot.onText(/\/later/, (msg) => {
 				"You have not completed the necessary surveys and forms. " +
 					"Please submit using /submitnussu and /submitfaculty."
 			);
+		} else if (diff > 0) {
+			bot.sendMessage(
+				id,
+				"You can only use this function after the collection starts."
+			);
 		} else {
 			bot
 				.sendMessage(
@@ -445,13 +478,6 @@ bot.onText(/\/later/, (msg) => {
 		}
 	});
 });
-
-let ts = Date.now();
-console.log(ts / 1000 / 60 / 60);
-var today = new Date();
-var time =
-	today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-console.log(time);
 
 // Feature 7*: Choose the snacks they want
 bot.onText(/\/flavour/, (msg) => {
