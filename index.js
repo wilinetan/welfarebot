@@ -9,13 +9,8 @@ let bot;
 if (process.env.NODE_ENV === "production") {
   const options = {
     webHook: {
-      // Port to which you should bind is assigned to $PORT variable
-      // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
       port: process.env.PORT || 5000,
       host: "0.0.0.0",
-      // you do NOT need to set up certificates since Heroku provides
-      // the SSL certs already (https://<app-name>.herokuapp.com)
-      // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
     },
   };
   bot = new TelegramBot(token, options);
@@ -32,8 +27,6 @@ const app = firebase.initializeApp({
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
 });
-
-console.log("bot server started...");
 
 const ref = firebase.database().ref("Computing");
 const matricRef = ref.child("matric");
@@ -408,14 +401,14 @@ bot.onText(/\/checkqueue/, (msg) => {
             id,
             "There is " +
               x.toString() +
-              " people in the queue. You do not have a queue number yet. Join the /queue now."
+              " person in the queue. You do not have a queue number yet. Join the /queue now."
           );
         } else {
           bot.sendMessage(
             id,
             "There are " +
               x.toString() +
-              " in the queue. You do not have a queue number yet. Join the /queue now."
+              " people in the queue. You do not have a queue number yet. Join the /queue now."
           );
         }
       });
