@@ -3,15 +3,47 @@ const firebase = require("firebase");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const express = require("express");
-const bodyParser = require("body-parser");
+///////////////// SERVER /////////////////////////////////////
+// const app = express();
+
+// app.use(bodyParser.json());
+
+// app.get("/", function (req, res) {
+//   res.json({ version: packageInfo.version });
+// });
+
+// app.post("/" + bot.token, (req, res) => {
+//   bot.processUpdate(req.body);
+//   res.sendStatus(200);
+// });
+
+// var server = app.listen(process.env.PORT, function () {
+//   var host = server.address().address;
+//   var port = server.address().port;
+
+//   console.log("Web server started at http://%s:%s", host, port);
+// });
+
+// const express = require("express");
+// const bodyParser = require("body-parser");
 
 const token = process.env.TELEGRAM_API_TOKEN;
 // const bot = new TelegramBot(token, { polling: true });
+
 let bot;
 if (process.env.NODE_ENV === "production") {
-  bot = new TelegramBot(token);
-  bot.setWebHook(process.env.HEROKU_URL + bot.token);
+  const options = {
+    webHook: {
+      // Port to which you should bind is assigned to $PORT variable
+      // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
+      port: process.env.PORT,
+      // you do NOT need to set up certificates since Heroku provides
+      // the SSL certs already (https://<app-name>.herokuapp.com)
+      // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
+    },
+  };
+  bot = new TelegramBot(token, options);
+  bot.setWebHook(process.env.HEROKU_URL + "/" + bot.token);
 } else {
   bot = new TelegramBot(token, { polling: true });
 }
@@ -640,25 +672,4 @@ bot.on("callback_query", (callbackQuery) => {
     }
     return;
   });
-});
-
-///////////////// SERVER /////////////////////////////////////
-const app = express();
-
-app.use(bodyParser.json());
-
-app.get("/", function (req, res) {
-  res.json({ version: packageInfo.version });
-});
-
-app.post("/" + bot.token, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-var server = app.listen(process.env.PORT, function () {
-  var host = server.address().address;
-  var port = server.address().port;
-
-  console.log("Web server started at http://%s:%s", host, port);
 });
