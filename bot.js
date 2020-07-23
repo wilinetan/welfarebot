@@ -37,14 +37,14 @@ if (process.env.NODE_ENV === "production") {
       // Port to which you should bind is assigned to $PORT variable
       // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
       port: process.env.PORT,
+      host = '0.0.0.0'
       // you do NOT need to set up certificates since Heroku provides
       // the SSL certs already (https://<app-name>.herokuapp.com)
       // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
     },
   };
   bot = new TelegramBot(token, options);
-  bot.setWebHook(process.env.HEROKU_URL + "/bot" + bot.token);
-  console.log("url", process.env.HEROKU_URL + "/bot" + bot.token);
+  bot.setWebHook(process.env.HEROKU_URL + ":443/bot" + bot.token);
 } else {
   bot = new TelegramBot(token, { polling: true });
 }
