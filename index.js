@@ -4,7 +4,6 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const token = process.env.TELEGRAM_API_TOKEN;
-// const bot = new TelegramBot(token, { polling: true });
 
 let bot;
 if (process.env.NODE_ENV === "production") {
