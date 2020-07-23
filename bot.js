@@ -43,7 +43,8 @@ if (process.env.NODE_ENV === "production") {
     },
   };
   bot = new TelegramBot(token, options);
-  bot.setWebHook(process.env.HEROKU_URL + "/" + bot.token);
+  bot.setWebHook(process.env.HEROKU_URL + "/bot" + bot.token);
+  console.log("url", process.env.HEROKU_URL + "/bot" + bot.token);
 } else {
   bot = new TelegramBot(token, { polling: true });
 }
