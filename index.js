@@ -1,2 +1,2 @@
-require('./bot');
-require('./web');
+const bot = require("./bot");
+// const app = require("./web");

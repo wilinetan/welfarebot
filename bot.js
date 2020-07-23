@@ -1,11 +1,20 @@
 const TelegramBot = require("node-telegram-bot-api");
 const firebase = require("firebase");
 const dotenv = require("dotenv");
-
 dotenv.config();
 
+const express = require("express");
+const bodyParser = require("body-parser");
+
 const token = process.env.TELEGRAM_API_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+// const bot = new TelegramBot(token, { polling: true });
+let bot;
+if (process.env.NODE_ENV === "production") {
+  bot = new TelegramBot(token);
+  bot.setWebHook(process.env.HEROKU_URL + bot.token);
+} else {
+  bot = new TelegramBot(token, { polling: true });
+}
 
 const app = firebase.initializeApp({
   apiKey: process.env.FIREBASE_API_KEY,
@@ -631,4 +640,25 @@ bot.on("callback_query", (callbackQuery) => {
     }
     return;
   });
+});
+
+///////////////// SERVER /////////////////////////////////////
+const app = express();
+
+app.use(bodyParser.json());
+
+app.get("/", function (req, res) {
+  res.json({ version: packageInfo.version });
+});
+
+app.post("/" + bot.token, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+var server = app.listen(process.env.PORT, function () {
+  var host = server.address().address;
+  var port = server.address().port;
+
+  console.log("Web server started at http://%s:%s", host, port);
 });
