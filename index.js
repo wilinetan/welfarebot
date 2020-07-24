@@ -298,6 +298,17 @@ bot.onText(/\/queue/, (msg) => {
           endDateArr[0]
         );
 
+        console.log("currdate", currDate.toString());
+        console.log("startime", startTime);
+        console.log("endtime", endTime);
+        console.log("startdateobj", startDateObject.toString());
+        console.log("enddateobj", endDateObject.toString());
+        console.log("first condition", currDate < startDateObject);
+        console.log("second condition", currDate > endDateObject);
+        console.log("currdate hours", currDate.getHours());
+        console.log("third condition", currDate.getHours() >= startTime - 1);
+        console.log("fourth condition", currDate.getHours() < endTime);
+
         // Current date is not within the range of collection dates
         if (currDate < startDateObject || currDate > endDateObject) {
           bot.sendMessage(
