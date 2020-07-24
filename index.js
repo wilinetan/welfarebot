@@ -9,13 +9,8 @@ let bot;
 if (process.env.NODE_ENV === "production") {
   const options = {
     webHook: {
-      // Port to which you should bind is assigned to $PORT variable
-      // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
       port: process.env.PORT || 5000,
       host: "0.0.0.0",
-      // you do NOT need to set up certificates since Heroku provides
-      // the SSL certs already (https://<app-name>.herokuapp.com)
-      // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
     },
   };
   bot = new TelegramBot(token, options);
@@ -32,8 +27,6 @@ const app = firebase.initializeApp({
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
 });
-
-console.log("bot server started...");
 
 const ref = firebase.database().ref("Computing");
 const matricRef = ref.child("matric");
@@ -286,8 +279,8 @@ bot.onText(/\/queue/, (msg) => {
 
         const currDate = new Date();
 
-        const startTime = parseInt(details.starttime, 10) / 100;
-        const endTime = parseInt(details.endtime, 10) / 100;
+        const startTime = parseInt(details.starttime);
+        const endTime = parseInt(details.endtime);
 
         const startDate = details.startdate;
         const startDateArr = startDate.split("/");
@@ -302,21 +295,22 @@ bot.onText(/\/queue/, (msg) => {
         const endDateObject = new Date(
           parseInt(endDateArr[2], 10) + 2000,
           parseInt(endDateArr[1], 10) - 1,
-          endDateArr[0]
+          endDateArr[0],
+          Math.trunc(endTime / 100),
+          endTime % 100
         );
 
         // Current date is not within the range of collection dates
-        if (currDate < startDateObject || currDate > endDateObject) {
+        if (currDate < startDateObject || currDate >= endDateObject) {
           bot.sendMessage(
             id,
             "There is currently no collection going on. Please use /admindetails to check the collection dates."
           );
         } else {
           // Current date is within the range of collection dates and time
-          if (
-            currDate.getHours() >= startTime - 1 &&
-            currDate.getHours() < endTime
-          ) {
+          const currTime = currDate.getHours() * 100 + currDate.getMinutes();
+
+          if (currTime >= startTime - 1 && currTime < endTime) {
             queueRef.child("currQueueNum").once("value", function (snapshot) {
               var currQueueNum = snapshot.val() + 1;
 
@@ -342,7 +336,7 @@ bot.onText(/\/queue/, (msg) => {
             // Current time is outside collection hours
             bot.sendMessage(
               id,
-              "You can only join queue 1 hour before collection start time. Please use /admindetails to check the start time."
+              "You can only start joining queue 1 hour before collection start time until the end time. Please use /admindetails to check the start time."
             );
           }
         }
@@ -408,14 +402,14 @@ bot.onText(/\/checkqueue/, (msg) => {
             id,
             "There is " +
               x.toString() +
-              " people in the queue. You do not have a queue number yet. Join the /queue now."
+              " person in the queue. You do not have a queue number yet. Join the /queue now."
           );
         } else {
           bot.sendMessage(
             id,
             "There are " +
               x.toString() +
-              " in the queue. You do not have a queue number yet. Join the /queue now."
+              " people in the queue. You do not have a queue number yet. Join the /queue now."
           );
         }
       });
@@ -486,8 +480,8 @@ bot.onText(/\/later/, (msg) => {
 
         const currDate = new Date();
 
-        const startTime = parseInt(details.starttime, 10) / 100;
-        const endTime = parseInt(details.endtime, 10) / 100;
+        const startTime = parseInt(details.starttime);
+        const endTime = parseInt(details.endtime);
 
         const startDate = details.startdate;
         const startDateArr = startDate.split("/");
@@ -502,7 +496,9 @@ bot.onText(/\/later/, (msg) => {
         const endDateObject = new Date(
           parseInt(endDateArr[2], 10) + 2000,
           parseInt(endDateArr[1], 10) - 1,
-          endDateArr[0]
+          endDateArr[0],
+          Math.trunc(endTime / 100),
+          endTime % 100
         );
 
         // Current date is not within the range of collection dates
@@ -513,10 +509,9 @@ bot.onText(/\/later/, (msg) => {
           );
         } else {
           // Current date is within the range of collection dates and time
-          if (
-            currDate.getHours() >= startTime &&
-            currDate.getHours() < endTime
-          ) {
+          const currTime = currDate.getHours() * 100 + currDate.getMinutes();
+
+          if (currTime >= startTime - 1 && currTime < endTime) {
             bot
               .sendMessage(
                 id,
@@ -584,7 +579,7 @@ bot.onText(/\/later/, (msg) => {
             // Current time is outside collection hours
             bot.sendMessage(
               id,
-              "You can only use this function after the collection starts."
+              "You can only use this function after and during the collection."
             );
           }
         }
