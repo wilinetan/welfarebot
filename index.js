@@ -161,7 +161,6 @@ function updateMatricNumber(matric, id) {
   }
 }
 
-
 // Get name from user. Accepts 2 variations of the word.
 bot.onText(/name/, (msg) => processName(msg));
 bot.onText(/Name/, (msg) => processName(msg));
@@ -203,17 +202,28 @@ process.on("unhandledRejection", function (error, p) {
 var answerCallbacks = {};
 
 bot.on("message", function (msg) {
-
-	var callback = answerCallbacks[msg.chat.id];
-	if (callback) {
-		delete answerCallbacks[msg.chat.id];
-		return callback(msg);
-	}
-	const id = msg.id
-	var reply = msg.text.toUpperCase()
-	elif (isLetter(reply.charAt(0)) && isLetter(reply.charAt(0)) && isNaN(parseInt(reply.substring(1, 8), 10))) {
-		bot.sendMessage(id, "Please put 'matric' before your matric number. Format: 'matric A1234567Z")
-	}
+  var callback = answerCallbacks[msg.chat.id];
+  if (callback) {
+    delete answerCallbacks[msg.chat.id];
+    return callback(msg);
+  }
+  const id = msg.id;
+  var reply = msg.text.toUpperCase();
+  function isLetter(str) {
+    return str.length === 1 && str.match(/[a-z]/i);
+  }
+  if (
+    matric.length === 9 &&
+    isLetter(reply.charAt(0)) &&
+    isLetter(reply.charAt(0)) &&
+    isNaN(parseInt(reply.substring(1, 8), 10))
+  ) {
+    bot.sendMessage(
+      id,
+      "Please put 'matric' before your matric number. Format: 'matric A1234567Z"
+    );
+    return;
+  }
 });
 
 // nussu
