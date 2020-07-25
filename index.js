@@ -203,7 +203,7 @@ process.on("unhandledRejection", function (error, p) {
 var answerCallbacks = {};
 
 bot.on("message", function (msg) {
-<<<<<<< HEAD
+
 	var callback = answerCallbacks[msg.chat.id];
 	if (callback) {
 		delete answerCallbacks[msg.chat.id];
@@ -214,13 +214,6 @@ bot.on("message", function (msg) {
 	elif (isLetter(reply.charAt(0)) && isLetter(reply.charAt(0)) && isNaN(parseInt(reply.substring(1, 8), 10))) {
 		bot.sendMessage(id, "Please put 'matric' before your matric number. Format: 'matric A1234567Z")
 	}
-=======
-  var callback = answerCallbacks[msg.chat.id];
-  if (callback) {
-    delete answerCallbacks[msg.chat.id];
-    return callback(msg);
-  }
->>>>>>> 682ac6c8df2583dd08424733b1b29cbf6c8dd3ea
 });
 
 // nussu
