@@ -186,7 +186,10 @@ bot.onText(/\/submitnussu/, function (msg) {
 								idRef.child(personid).update({
 									nussu: url,
 								});
-								bot.sendMessage(answer.chat.id, "NUSSU Survey proof received!");
+								bot.sendMessage(
+									answer.chat.id,
+									"NUSSU Survey proof received! If you have sent both survey proofs, feel free to check number of people in the queue using /checkqueue, join the queue now using /queue or later using /later. "
+								);
 							}
 						});
 					} else {
@@ -231,7 +234,7 @@ bot.onText(/\/submitfaculty/, function (msg) {
 								});
 								bot.sendMessage(
 									answer.chat.id,
-									"Faculty Survey proof received!"
+									"Faculty Survey proof received! If you have sent both survey proofs, feel free to check number of people in the queue using /checkqueue, join the queue now using /queue or later using /later. "
 								);
 							}
 						});
