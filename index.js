@@ -79,32 +79,44 @@ function updateMatricNumber(matric, id) {
     bot.sendMessage(id, "Invalid matric number entered. Please try again.");
   } else {
     // checks if matric number is in database and updates details otherwise prompts user again
-    matricRef.once("value", function (snapshot) {
-      if (snapshot.hasChild(matric)) {
-        idRef.once("value", function (snap) {
-          if (snap.hasChild(id.toString())) {
-            bot.sendMessage(id, "You have already been authenticated.");
-          } else {
-            idRef.child(id).set({
-              matric: matric,
-              teleid: id,
-              collected: false,
-              surveyVerified: false,
-              queueNum: -1,
+    idRef
+      .orderByChild("matric")
+      .equalTo(matric)
+      .once("value", function (snapshot) {
+        // matric number has been used by another account
+        if (snapshot !== null) {
+          bot.sendMessage(id, "This matric number has already been used.");
+          return;
+        }
+        // Check if matric number is in the list of matric numbers
+        matricRef.once("value", function (snapshot) {
+          if (snapshot.hasChild(matric)) {
+            idRef.once("value", function (snap) {
+              // Tele user has already been authenticated
+              if (snap.hasChild(id.toString())) {
+                bot.sendMessage(id, "You have already been authenticated.");
+              } else {
+                idRef.child(id).set({
+                  matric: matric,
+                  teleid: id,
+                  collected: false,
+                  surveyVerified: false,
+                  queueNum: -1,
+                });
+                bot.sendMessage(
+                  id,
+                  'Please input your full name with the correct format: "name Bob Lim Xiao Ming".'
+                );
+              }
             });
+          } else {
             bot.sendMessage(
               id,
-              'Please input your full name with the correct format: "name Bob Lim Xiao Ming".'
+              "Matric number is not recognised. Please try again."
             );
           }
         });
-      } else {
-        bot.sendMessage(
-          id,
-          "Matric number is not recognised. Please try again."
-        );
-      }
-    });
+      });
   }
 }
 
