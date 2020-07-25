@@ -322,7 +322,7 @@ bot.onText(/\/queue/, (msg) => {
 									id,
 									"Your queue number is " +
 										currQueueNum.toString() +
-										". We will notify you when your turn is near."
+										". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
 								)
 								.then(() => {
 									idRef.child(id).update({
@@ -548,7 +548,7 @@ bot.onText(/\/later/, (msg) => {
 														id,
 														"Your queue number is " +
 															currQueueNum.toString() +
-															". We will notify you when your turn is near."
+															". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
 													)
 													.then(() => {
 														idRef.child(id).update({
