@@ -433,6 +433,17 @@ bot.onText(/\/checkqueue/, (msg) => {
 	});
 });
 
+//unqueue
+bot.onText(/\/unqueue/, (msg) => {
+	const id = msg.from.id;
+	idRef.child(id).update({
+		queueNum: -1,
+		missed: false,
+		time: null,
+	});
+	bot.sendMessage(id, "You are no longer in the queue.");
+});
+
 // Feature 6: Provide information about the welfare pack event.
 bot.onText(/\/admindetails/, (msg) => {
 	const id = msg.from.id;
@@ -606,6 +617,21 @@ missedRef.on("value", function (snapshot) {
 			);
 		}
 	});
+});
+
+bot.onText(/\/help/, (msg) => {
+	const id = msg.from.id;
+	bot.sendMessage(
+		id,
+		"Welcome to WelfareBot! This bot is used to facilitate the queueing process for welfare collection." +
+			" \n 1. Follow the instructions to input your matric number and full name" +
+			" \n 2. Submit proof of survey completions using /submitnussu and /submitfaculty" +
+			" \n 3. Use /admindetails to check collection venue and time" +
+			" \n 4. Use /queue to get a queue number" +
+			" \n 5. A notification will be sent to you when your turn is nearing" +
+			" \n 6. Use /checkqueue to check number of people in front of you" +
+			" \n 7. Use /later to join the queue at a later timing"
+	);
 });
 
 // Feature 7*: Choose the snacks they want
