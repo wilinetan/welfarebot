@@ -158,91 +158,95 @@ bot.on("message", function (msg) {
 
 // nussu
 bot.onText(/\/submitnussu/, function (msg) {
-  adRef.child("nussulink").once("value", function (snapshot) {
-    const link = snapshot.val();
-    bot
-      .sendMessage(
-        msg.chat.id,
-        "Survey link is " +
-          link +
-          ". Send proof of completing NUSSU Survey (screenshot)."
-      )
-      .then(function () {
-        answerCallbacks[msg.chat.id] = async function (answer) {
-          if (answer.photo && answer.photo[0]) {
-            const personid = answer.from.id.toString();
-            const file_id = answer.photo[0].file_id;
-            const fileinfo = await bot.getFile(file_id);
-            const { file_path } = fileinfo;
-            const url =
-              "https://api.telegram.org/file/bot" +
-              process.env.TELEGRAM_API_TOKEN +
-              "/" +
-              file_path;
 
-            idRef.once("value", function (snapshot) {
-              if (snapshot.hasChild(personid)) {
-                idRef.child(personid).update({
-                  nussu: url,
-                });
-                bot.sendMessage(answer.chat.id, "NUSSU Survey proof received!");
-              }
-            });
-          } else {
-            bot.sendMessage(
-              msg.chat.id,
-              "Please resubmit the NUSSU survey screenshot as a photo with /submitnussu command."
-            );
-          }
-        };
-      });
-  });
+	adRef.child("nussulink").once("value", function (snapshot) {
+		const link = snapshot.val();
+		bot
+			.sendMessage(
+				msg.chat.id,
+				"Survey link is " +
+					link +
+					". Send proof of completing NUSSU Survey (screenshot)."
+			)
+			.then(function () {
+				answerCallbacks[msg.chat.id] = async function (answer) {
+					if (answer.photo && answer.photo[0]) {
+						const personid = answer.from.id.toString();
+						const file_id = answer.photo[0].file_id;
+						const fileinfo = await bot.getFile(file_id);
+						const { file_path } = fileinfo;
+						const url =
+							"https://api.telegram.org/file/bot" +
+							process.env.TELEGRAM_API_TOKEN +
+							"/" +
+							file_path;
+
+						idRef.once("value", function (snapshot) {
+							if (snapshot.hasChild(personid)) {
+								idRef.child(personid).update({
+									nussu: url,
+								});
+								bot.sendMessage(
+									answer.chat.id,
+									"NUSSU Survey proof received! If you have sent both survey proofs, feel free to check number of people in the queue using /checkqueue, join the queue now using /queue or later using /later. "
+								);
+							}
+						});
+					} else {
+						bot.sendMessage(
+							msg.chat.id,
+							"Please resubmit the NUSSU survey screenshot as a photo with /submitnussu command."
+						);
+					}
+				};
+			});
+	});
 });
 
 // faculty
 bot.onText(/\/submitfaculty/, function (msg) {
-  adRef.child("facultylink").once("value", function (snapshot) {
-    const link = snapshot.val();
-    bot
-      .sendMessage(
-        msg.chat.id,
-        "Survey link is " +
-          link +
-          ". Send proof of completing Faculty Survey (screenshot)."
-      )
-      .then(function () {
-        answerCallbacks[msg.chat.id] = async function (answer) {
-          if (answer.photo && answer.photo[0]) {
-            const personid = answer.from.id.toString();
-            const file_id = answer.photo[0].file_id;
-            const fileinfo = await bot.getFile(file_id);
-            const { file_path } = fileinfo;
-            const url =
-              "https://api.telegram.org/file/bot" +
-              process.env.TELEGRAM_API_TOKEN +
-              "/" +
-              file_path;
+	adRef.child("facultylink").once("value", function (snapshot) {
+		const link = snapshot.val();
+		bot
+			.sendMessage(
+				msg.chat.id,
+				"Survey link is " +
+					link +
+					". Send proof of completing Faculty Survey (screenshot)."
+			)
+			.then(function () {
+				answerCallbacks[msg.chat.id] = async function (answer) {
+					if (answer.photo && answer.photo[0]) {
+						const personid = answer.from.id.toString();
+						const file_id = answer.photo[0].file_id;
+						const fileinfo = await bot.getFile(file_id);
+						const { file_path } = fileinfo;
+						const url =
+							"https://api.telegram.org/file/bot" +
+							process.env.TELEGRAM_API_TOKEN +
+							"/" +
+							file_path;
 
-            idRef.once("value", function (snapshot) {
-              if (snapshot.hasChild(personid)) {
-                idRef.child(personid).update({
-                  faculty: url,
-                });
-                bot.sendMessage(
-                  answer.chat.id,
-                  "Faculty Survey proof received!"
-                );
-              }
-            });
-          } else {
-            bot.sendMessage(
-              msg.chat.id,
-              "Please resubmit the faculty survey screenshot as a photo with /submitfaculty command."
-            );
-          }
-        };
-      });
-  });
+						idRef.once("value", function (snapshot) {
+							if (snapshot.hasChild(personid)) {
+								idRef.child(personid).update({
+									faculty: url,
+								});
+								bot.sendMessage(
+									answer.chat.id,
+									"Faculty Survey proof received! If you have sent both survey proofs, feel free to check number of people in the queue using /checkqueue, join the queue now using /queue or later using /later. "
+								);
+							}
+						});
+					} else {
+						bot.sendMessage(
+							msg.chat.id,
+							"Please resubmit the faculty survey screenshot as a photo with /submitfaculty command."
+						);
+					}
+				};
+			});
+	});
 });
 
 // Feature 3: Queue
