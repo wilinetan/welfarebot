@@ -1,11 +1,23 @@
 const TelegramBot = require("node-telegram-bot-api");
 const firebase = require("firebase");
 const dotenv = require("dotenv");
-
 dotenv.config();
 
 const token = process.env.TELEGRAM_API_TOKEN;
-const bot = new TelegramBot(token, { polling: true });
+
+let bot;
+if (process.env.NODE_ENV === "production") {
+	const options = {
+		webHook: {
+			port: process.env.PORT || 5000,
+			host: "0.0.0.0",
+		},
+	};
+	bot = new TelegramBot(token, options);
+	bot.setWebHook(process.env.HEROKU_URL + ":443/bot" + bot.token);
+} else {
+	bot = new TelegramBot(token, { polling: true });
+}
 
 const app = firebase.initializeApp({
 	apiKey: process.env.FIREBASE_API_KEY,
@@ -22,19 +34,6 @@ const idRef = ref.child("ids");
 const adRef = ref.child("admin");
 const queueRef = ref.child("queueDetails");
 const missedRef = ref.child("missed");
-
-var today = new Date();
-var h = today.getHours();
-var m = today.getMinutes();
-var t = h * 100 + m;
-console.log(t);
-function name(t) {
-	adRef.once("value", function (snapshot) {
-		const details = snapshot.val();
-		diff = parseInt(details.starttime) - parseInt(t);
-	});
-}
-let diff = name(t);
 
 // Feature 1: Authentication
 bot.onText(/\/start/, (msg) => {
@@ -277,32 +276,73 @@ bot.onText(/\/queue/, (msg) => {
 				"You have not completed the necessary surveys and forms. " +
 					"Please submit using /submitnussu and /submitfaculty."
 			);
-		} else if (diff > 100) {
-			bot.sendMessage(
-				id,
-				"You can only join queue 1 hour before collection start time. Please use /admindetails to check the start time."
-			);
 		} else {
-			queueRef.child("currQueueNum").once("value", function (snapshot) {
-				var currQueueNum = snapshot.val() + 1;
+			adRef.once("value", (snapshot) => {
+				const details = snapshot.val();
 
-				bot
-					.sendMessage(
+				const currDate = new Date();
+
+				const startTime = parseInt(details.starttime);
+				const endTime = parseInt(details.endtime);
+
+				const startDate = details.startdate;
+				const startDateArr = startDate.split("/");
+				const startDateObject = new Date(
+					parseInt(startDateArr[2], 10) + 2000,
+					parseInt(startDateArr[1], 10) - 1,
+					startDateArr[0]
+				);
+
+				const endDate = details.enddate;
+				const endDateArr = endDate.split("/");
+				const endDateObject = new Date(
+					parseInt(endDateArr[2], 10) + 2000,
+					parseInt(endDateArr[1], 10) - 1,
+					endDateArr[0],
+					Math.trunc(endTime / 100),
+					endTime % 100
+				);
+
+				// Current date is not within the range of collection dates
+				if (currDate < startDateObject || currDate >= endDateObject) {
+					bot.sendMessage(
 						id,
-						"Your queue number is " +
-							currQueueNum.toString() +
-							". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
-					)
-					.then(() => {
-						idRef.child(id).update({
-							queueNum: currQueueNum,
-							missed: false,
-							time: null,
+						"There is currently no collection going on. Please use /admindetails to check the collection dates."
+					);
+				} else {
+					// Current date is within the range of collection dates and time
+					const currTime = currDate.getHours() * 100 + currDate.getMinutes();
+
+					if (currTime >= startTime - 1 && currTime < endTime) {
+						queueRef.child("currQueueNum").once("value", function (snapshot) {
+							var currQueueNum = snapshot.val() + 1;
+
+							bot
+								.sendMessage(
+									id,
+									"Your queue number is " +
+										currQueueNum.toString() +
+										". We will notify you when your turn is near."
+								)
+								.then(() => {
+									idRef.child(id).update({
+										queueNum: currQueueNum,
+										missed: false,
+										time: null,
+									});
+									queueRef.update({
+										currQueueNum: currQueueNum,
+									});
+								});
 						});
-						queueRef.update({
-							currQueueNum: currQueueNum,
-						});
-					});
+					} else {
+						// Current time is outside collection hours
+						bot.sendMessage(
+							id,
+							"You can only start joining queue 1 hour before collection start time until the end time. Please use /admindetails to check the start time."
+						);
+					}
+				}
 			});
 		}
 	});
@@ -365,14 +405,14 @@ bot.onText(/\/checkqueue/, (msg) => {
 						id,
 						"There is " +
 							x.toString() +
-							" people in the queue. You do not have a queue number yet. Join the /queue now."
+							" person in the queue. You do not have a queue number yet. Join the /queue now."
 					);
 				} else {
 					bot.sendMessage(
 						id,
 						"There are " +
 							x.toString() +
-							" in the queue. You do not have a queue number yet. Join the /queue now."
+							" people in the queue. You do not have a queue number yet. Join the /queue now."
 					);
 				}
 			});
@@ -437,81 +477,119 @@ bot.onText(/\/later/, (msg) => {
 				"You have not completed the necessary surveys and forms. " +
 					"Please submit using /submitnussu and /submitfaculty."
 			);
-		} else if (diff > 0) {
-			bot.sendMessage(
-				id,
-				"You can only use this function after the collection starts."
-			);
 		} else {
-			bot
-				.sendMessage(
-					id,
-					"How many minutes from now do you want to join the queue?"
-				)
-				.then(function () {
-					answerCallbacks[msg.chat.id] = async function (answer) {
-						const duration = answer.text;
-						if (isNaN(parseInt(duration)) || parseInt(duration) <= 0) {
-							bot.sendMessage(
-								id,
-								"Please input a valid number with the /later command again."
-							);
-							return;
-						}
+			adRef.once("value", (snapshot) => {
+				const details = snapshot.val();
 
+				const currDate = new Date();
+
+				const startTime = parseInt(details.starttime);
+				const endTime = parseInt(details.endtime);
+
+				const startDate = details.startdate;
+				const startDateArr = startDate.split("/");
+				const startDateObject = new Date(
+					parseInt(startDateArr[2], 10) + 2000,
+					parseInt(startDateArr[1], 10) - 1,
+					startDateArr[0]
+				);
+
+				const endDate = details.enddate;
+				const endDateArr = endDate.split("/");
+				const endDateObject = new Date(
+					parseInt(endDateArr[2], 10) + 2000,
+					parseInt(endDateArr[1], 10) - 1,
+					endDateArr[0],
+					Math.trunc(endTime / 100),
+					endTime % 100
+				);
+
+				// Current date is not within the range of collection dates
+				if (currDate < startDateObject || currDate > endDateObject) {
+					bot.sendMessage(
+						id,
+						"There is currently no collection going on. Please use /admindetails to check the collection dates."
+					);
+				} else {
+					// Current date is within the range of collection dates and time
+					const currTime = currDate.getHours() * 100 + currDate.getMinutes();
+
+					if (currTime >= startTime - 1 && currTime < endTime) {
+						bot
+							.sendMessage(
+								id,
+								"How many minutes from now do you want to join the queue?"
+							)
+							.then(function () {
+								answerCallbacks[msg.chat.id] = async function (answer) {
+									const duration = answer.text;
+									if (isNaN(parseInt(duration)) || parseInt(duration) <= 0) {
+										bot.sendMessage(
+											id,
+											"Please input a valid number with the /later command again."
+										);
+										return;
+									}
+
+									bot.sendMessage(
+										id,
+										"Okay, I will put you in the queue in " +
+											duration +
+											" minutes."
+									);
+									function queuef() {
+										queueRef
+											.child("currQueueNum")
+											.once("value", function (snapshot) {
+												var currQueueNum = snapshot.val() + 1;
+
+												bot
+													.sendMessage(
+														id,
+														"Your queue number is " +
+															currQueueNum.toString() +
+															". We will notify you when your turn is near."
+													)
+													.then(() => {
+														idRef.child(id).update({
+															queueNum: currQueueNum,
+															missed: false,
+															time: null,
+														});
+
+														queueRef.update({
+															currQueueNum: currQueueNum,
+														});
+													});
+											});
+									}
+									setTimeout(queuef, duration * 60 * 1000);
+									// adRef.once("value", function (snapshot) {
+									// 	const details = snapshot.val();
+									// if (time <= details.endtime & time >= details.starttime) {
+
+									// 	}
+
+									// when current time==time
+									// add to queue & notify user
+									// send message that it is successful
+								};
+								// else {
+								// 	bot.sendMessage(answer.chat.id, 'Time stated is not within the collection time.')
+								// }
+							});
+					} else {
+						// Current time is outside collection hours
 						bot.sendMessage(
 							id,
-							"Okay, I will put you in the queue in " + duration + " minutes."
+							"You can only use this function after and during the collection."
 						);
-						function queuef() {
-							queueRef.child("currQueueNum").once("value", function (snapshot) {
-								var currQueueNum = snapshot.val() + 1;
-
-								bot
-									.sendMessage(
-										id,
-										"Your queue number is " +
-											currQueueNum.toString() +
-											". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
-									)
-									.then(() => {
-										idRef.child(id).update({
-											queueNum: currQueueNum,
-											missed: false,
-											time: null,
-										});
-
-										queueRef.update({
-											currQueueNum: currQueueNum,
-										});
-									});
-							});
-						}
-						setTimeout(queuef, duration * 60 * 1000);
-						// adRef.once("value", function (snapshot) {
-						// 	const details = snapshot.val();
-						// if (time <= details.endtime & time >= details.starttime) {
-
-						// 	}
-
-						// when current time==time
-						// add to queue & notify user
-						// send message that it is successful
-					};
-					// else {
-					// 	bot.sendMessage(answer.chat.id, 'Time stated is not within the collection time.')
-					// }
-				});
+					}
+				}
+			});
 		}
 	});
 });
-
-// let ts = Date.now();
-// console.log(ts / 1000 / 60 / 60);
-// var today = new Date();
-// var time =
-//   today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-// console.log(time);
 
 // Feature 8*: User who missed queue receives a notification to join the queue again
 missedRef.on("value", function (snapshot) {
