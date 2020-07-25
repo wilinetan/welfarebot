@@ -118,6 +118,47 @@ function updateMatricNumber(matric, id) {
         });
       });
   }
+  function isLetter(str) {
+    return str.length === 1 && str.match(/[a-z]/i);
+  }
+
+  if (matric.length !== 9) {
+    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
+  } else if (
+    !isLetter(matric.charAt(0)) ||
+    !isLetter(matric.charAt(0)) ||
+    isNaN(parseInt(matric.substring(1, 8), 10))
+  ) {
+    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
+  } else {
+    // checks if matric number is in database and updates details otherwise prompts user again
+    matricRef.once("value", function (snapshot) {
+      if (snapshot.hasChild(matric)) {
+        idRef.once("value", function (snap) {
+          if (snap.hasChild(id.toString())) {
+            bot.sendMessage(id, "You have already been authenticated.");
+          } else {
+            idRef.child(id).set({
+              matric: matric,
+              teleid: id,
+              collected: false,
+              surveyVerified: false,
+              queueNum: -1,
+            });
+            bot.sendMessage(
+              id,
+              'Please input your full name with the correct format: "name Bob Lim Xiao Ming".'
+            );
+          }
+        });
+      } else {
+        bot.sendMessage(
+          id,
+          "Matric number is not recognised. Please try again."
+        );
+      }
+    });
+  }
 }
 
 // Get name from user. Accepts 2 variations of the word.
@@ -197,7 +238,10 @@ bot.onText(/\/submitnussu/, function (msg) {
                 idRef.child(personid).update({
                   nussu: url,
                 });
-                bot.sendMessage(answer.chat.id, "NUSSU Survey proof received!");
+                bot.sendMessage(
+                  answer.chat.id,
+                  "NUSSU Survey proof received! If you have sent both survey proofs, feel free to check number of people in the queue using /checkqueue, join the queue now using /queue or later using /later. "
+                );
               }
             });
           } else {
@@ -242,7 +286,7 @@ bot.onText(/\/submitfaculty/, function (msg) {
                 });
                 bot.sendMessage(
                   answer.chat.id,
-                  "Faculty Survey proof received!"
+                  "Faculty Survey proof received! If you have sent both survey proofs, feel free to check number of people in the queue using /checkqueue, join the queue now using /queue or later using /later. "
                 );
               }
             });
@@ -331,7 +375,7 @@ bot.onText(/\/queue/, (msg) => {
                   id,
                   "Your queue number is " +
                     currQueueNum.toString() +
-                    ". We will notify you when your turn is near."
+                    ". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
                 )
                 .then(() => {
                   idRef.child(id).update({
@@ -440,6 +484,17 @@ bot.onText(/\/checkqueue/, (msg) => {
       }
     }
   });
+});
+
+//unqueue
+bot.onText(/\/unqueue/, (msg) => {
+  const id = msg.from.id;
+  idRef.child(id).update({
+    queueNum: -1,
+    missed: false,
+    time: null,
+  });
+  bot.sendMessage(id, "You are no longer in the queue.");
 });
 
 // Feature 6: Provide information about the welfare pack event.
@@ -557,7 +612,7 @@ bot.onText(/\/later/, (msg) => {
                             id,
                             "Your queue number is " +
                               currQueueNum.toString() +
-                              ". We will notify you when your turn is near."
+                              ". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
                           )
                           .then(() => {
                             idRef.child(id).update({
@@ -615,6 +670,21 @@ missedRef.on("value", function (snapshot) {
       );
     }
   });
+});
+
+bot.onText(/\/help/, (msg) => {
+  const id = msg.from.id;
+  bot.sendMessage(
+    id,
+    "Welcome to WelfareBot! This bot is used to facilitate the queueing process for welfare collection." +
+      " \n 1. Follow the instructions to input your matric number and full name" +
+      " \n 2. Submit proof of survey completions using /submitnussu and /submitfaculty" +
+      " \n 3. Use /admindetails to check collection venue and time" +
+      " \n 4. Use /queue to get a queue number" +
+      " \n 5. A notification will be sent to you when your turn is nearing" +
+      " \n 6. Use /checkqueue to check number of people in front of you" +
+      " \n 7. Use /later to join the queue at a later timing"
+  );
 });
 
 // Feature 7*: Choose the snacks they want
