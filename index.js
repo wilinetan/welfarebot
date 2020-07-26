@@ -19,6 +19,9 @@ if (process.env.NODE_ENV === "production") {
   bot = new TelegramBot(token, { polling: true });
 }
 
+// Check for errors
+bot.on("polling_error", (msg) => console.log(msg));
+
 const app = firebase.initializeApp({
   apiKey: process.env.FIREBASE_API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -213,7 +216,7 @@ bot.on("message", function (msg) {
     return str.length === 1 && str.match(/[a-z]/i);
   }
   if (
-    matric.length === 9 &&
+    reply.length === 9 &&
     isLetter(reply.charAt(0)) &&
     isLetter(reply.charAt(0)) &&
     isNaN(parseInt(reply.substring(1, 8), 10))
@@ -592,7 +595,7 @@ bot.onText(/\/later/, (msg) => {
             "There is currently no collection going on. Please use /admindetails to check the collection dates."
           );
         } else {
-          // Current date is within the range of collection dates and time
+          // Current date is within the range of collection dates
           const currTime = currDate.getHours() * 100 + currDate.getMinutes();
 
           if (currTime >= startTime - 1 && currTime < endTime) {
@@ -619,30 +622,67 @@ bot.onText(/\/later/, (msg) => {
                       " minutes."
                   );
                   function queuef() {
-                    queueRef
-                      .child("currQueueNum")
-                      .once("value", function (snapshot) {
-                        var currQueueNum = snapshot.val() + 1;
-
-                        bot
-                          .sendMessage(
+                    idRef.child(id).once("value", (snapshot) => {
+                      if (
+                        snapshot.val().queueNum !== -1 &&
+                        !snapshot.val().missed
+                      ) {
+                        bot.sendMessage(
+                          id,
+                          "You are already in the queue. Your current queue number is " +
+                            snapshot.val().queueNum
+                        );
+                      } else {
+                        const currDate = new Date();
+                        // Current date is not within the range of collection dates
+                        if (
+                          currDate < startDateObject ||
+                          currDate > endDateObject
+                        ) {
+                          bot.sendMessage(
                             id,
-                            "Your queue number is " +
-                              currQueueNum.toString() +
-                              ". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
-                          )
-                          .then(() => {
-                            idRef.child(id).update({
-                              queueNum: currQueueNum,
-                              missed: false,
-                              time: null,
-                            });
+                            "The time you selected to queue is outside collection dates. Please use /admindetails to check the collection dates."
+                          );
+                        } else {
+                          // Current date is within the range of collection dates
+                          const currTime =
+                            currDate.getHours() * 100 + currDate.getMinutes();
+                          // Current time is within the range of collection time
+                          if (currTime >= startTime - 1 && currTime < endTime) {
+                            queueRef
+                              .child("currQueueNum")
+                              .once("value", function (snapshot) {
+                                var currQueueNum = snapshot.val() + 1;
 
-                            queueRef.update({
-                              currQueueNum: currQueueNum,
-                            });
-                          });
-                      });
+                                bot
+                                  .sendMessage(
+                                    id,
+                                    "Your queue number is " +
+                                      currQueueNum.toString() +
+                                      ". We will notify you when there are 3 people infront of you. To keep track of the queue status, feel free to use /checkqueue. Please make your way to the location as seen in /admindetails and make it in time for your turn. If you do not appear within 5 minutes of your turn, you will be removed from the queue."
+                                  )
+                                  .then(() => {
+                                    idRef.child(id).update({
+                                      queueNum: currQueueNum,
+                                      missed: false,
+                                      time: null,
+                                    });
+
+                                    queueRef.update({
+                                      currQueueNum: currQueueNum,
+                                    });
+                                  });
+                              });
+                          } else {
+                            // Current time is outside collection hours
+                            bot.sendMessage(
+                              id,
+                              "The time you selected to queue is outside collection hours. Please use /admindetails to check the collection timings."
+                            );
+                          }
+                        }
+                      }
+                    });
                   }
                   setTimeout(queuef, duration * 60 * 1000);
                   // adRef.once("value", function (snapshot) {
