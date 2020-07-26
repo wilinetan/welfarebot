@@ -87,9 +87,9 @@ function updateMatricNumber(matric, id) {
       .equalTo(matric)
       .once("value", function (snapshot) {
         // matric number has been used by another account
-        if (snapshot !== null) {
+        if (snapshot.val() !== null) {
           bot.sendMessage(id, "This matric number has already been used.");
-          return;
+          // return;
         } else {
           // Check if matric number is in the list of matric numbers
           matricRef.once("value", function (snapshot) {
@@ -121,47 +121,6 @@ function updateMatricNumber(matric, id) {
           });
         }
       });
-  }
-  function isLetter(str) {
-    return str.length === 1 && str.match(/[a-z]/i);
-  }
-
-  if (matric.length !== 9) {
-    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
-  } else if (
-    !isLetter(matric.charAt(0)) ||
-    !isLetter(matric.charAt(0)) ||
-    isNaN(parseInt(matric.substring(1, 8), 10))
-  ) {
-    bot.sendMessage(id, "Invalid matric number entered. Please try again.");
-  } else {
-    // checks if matric number is in database and updates details otherwise prompts user again
-    matricRef.once("value", function (snapshot) {
-      if (snapshot.hasChild(matric)) {
-        idRef.once("value", function (snap) {
-          if (snap.hasChild(id.toString())) {
-            bot.sendMessage(id, "You have already been authenticated.");
-          } else {
-            idRef.child(id).set({
-              matric: matric,
-              teleid: id,
-              collected: false,
-              surveyVerified: false,
-              queueNum: -1,
-            });
-            bot.sendMessage(
-              id,
-              'Please input your full name with the correct format: "name Bob Lim Xiao Ming".'
-            );
-          }
-        });
-      } else {
-        bot.sendMessage(
-          id,
-          "Matric number is not recognised. Please try again."
-        );
-      }
-    });
   }
 }
 
