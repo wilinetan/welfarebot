@@ -90,35 +90,36 @@ function updateMatricNumber(matric, id) {
         if (snapshot !== null) {
           bot.sendMessage(id, "This matric number has already been used.");
           return;
+        } else {
+          // Check if matric number is in the list of matric numbers
+          matricRef.once("value", function (snapshot) {
+            if (snapshot.hasChild(matric)) {
+              idRef.once("value", function (snap) {
+                // Tele user has already been authenticated
+                if (snap.hasChild(id.toString())) {
+                  bot.sendMessage(id, "You have already been authenticated.");
+                } else {
+                  idRef.child(id).set({
+                    matric: matric,
+                    teleid: id,
+                    collected: false,
+                    surveyVerified: false,
+                    queueNum: -1,
+                  });
+                  bot.sendMessage(
+                    id,
+                    'Please input your full name with the correct format: "name Bob Lim Xiao Ming".'
+                  );
+                }
+              });
+            } else {
+              bot.sendMessage(
+                id,
+                "Matric number is not recognised. Please try again."
+              );
+            }
+          });
         }
-        // Check if matric number is in the list of matric numbers
-        matricRef.once("value", function (snapshot) {
-          if (snapshot.hasChild(matric)) {
-            idRef.once("value", function (snap) {
-              // Tele user has already been authenticated
-              if (snap.hasChild(id.toString())) {
-                bot.sendMessage(id, "You have already been authenticated.");
-              } else {
-                idRef.child(id).set({
-                  matric: matric,
-                  teleid: id,
-                  collected: false,
-                  surveyVerified: false,
-                  queueNum: -1,
-                });
-                bot.sendMessage(
-                  id,
-                  'Please input your full name with the correct format: "name Bob Lim Xiao Ming".'
-                );
-              }
-            });
-          } else {
-            bot.sendMessage(
-              id,
-              "Matric number is not recognised. Please try again."
-            );
-          }
-        });
       });
   }
   function isLetter(str) {
