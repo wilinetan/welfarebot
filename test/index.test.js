@@ -1,7 +1,7 @@
 const expect = require("chai").expect;
 const index = require("../index");
 const firebase = require("firebase");
-const dotenv = require("dotenv");
+const dotenv = require("dotenv").config();
 
 var TelegramTest = require("telegram-test");
 var TelegramBot = require("node-telegram-bot-api");
